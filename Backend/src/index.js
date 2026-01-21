@@ -15,6 +15,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get("/", (req, res) => {
+  res.json({ message: "Backend is running" });
+});
+
 app.get("/api/", (req, res) => {
   res.json({ message: "API is running" });
 });
@@ -28,8 +32,8 @@ app.use("/api/reviews", ReviewRoutes);
 app.use("/api/cart", CartRoutes);
 app.use("/api/payment", PayRoutes);
 
-app.listen('5001',()=>{
-    console.log("server running");
-})
+// app.listen('5001',()=>{
+//     console.log("server running");
+// })
 
 export default app;
