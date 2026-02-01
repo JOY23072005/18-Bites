@@ -1,6 +1,6 @@
 import HomeConfig from "../models/homeConfig.model.js";
-import { connectDB } from "../config/db.js";
-import { uploadBufferToCloudinary } from "../utils/cloudinary.js";
+import { connectDB } from "../lib/db.js";
+import { uploadBufferToCloudinary } from "../lib/cloudinary.js";
 
 export const addHomeBanner = async (req, res) => {
   try {
