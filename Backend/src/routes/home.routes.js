@@ -9,3 +9,5 @@ const HomeRoutes = express.Router();
 HomeRoutes.get("/", getHomeBanner);
 HomeRoutes.post("/", authMiddleware, adminMiddleware,uploadBannerImages,addHomeBanner );
 HomeRoutes.put("/video", authMiddleware, adminMiddleware, updateHomeVideo);
+
+export default HomeRoutes;
