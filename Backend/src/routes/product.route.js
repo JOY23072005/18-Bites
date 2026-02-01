@@ -28,6 +28,24 @@ const ProdRoutes = express.Router();
  * =====================
  */
 
+// Home Page Fetchs
+
+ProdRoutes.get("/featured", getFeaturedProducts);
+ProdRoutes.get("/trending", getTrendingProducts);
+
+// Hot Deal with timer
+
+// Admin
+ProdRoutes.put(
+  "/:id/hot-deal",
+  authMiddleware,
+  adminMiddleware,
+  setTodaysHotDeal
+);
+
+// Public
+ProdRoutes.get("/hot-deal", getTodaysHotDeal);
+
 // GET /api/products
 ProdRoutes.get("/", getAllProducts);
 
@@ -87,24 +105,6 @@ ProdRoutes.post(
   uploadCSV,
   uploadProductsCSV
 );
-
-// Home Page Fetchs
-
-ProdRoutes.get("/featured", getFeaturedProducts);
-ProdRoutes.get("/trending", getTrendingProducts);
-
-// Hot Deal with timer
-
-// Admin
-ProdRoutes.put(
-  "/:id/hot-deal",
-  authMiddleware,
-  adminMiddleware,
-  setTodaysHotDeal
-);
-
-// Public
-ProdRoutes.get("/hot-deal", getTodaysHotDeal);
 
 
 export default ProdRoutes;
