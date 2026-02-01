@@ -10,6 +10,7 @@ import CategoryRoutes from "./routes/category.route.js";
 import ReviewRoutes from "./routes/review.route.js";
 import PayRoutes from "./routes/payment.routes.js";
 import HomeRoutes from "./routes/home.routes.js";
+import AdminRoutes from "./routes/admin.routes.js";
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use("/api/reviews", ReviewRoutes);
 app.use("/api/cart", CartRoutes);
 app.use("/api/payment", PayRoutes);
 app.use("/api/home",HomeRoutes);
+app.use("/api/admin", AdminRoutes);
 // app.listen('5001',()=>{
 //     console.log("server running");
 // })

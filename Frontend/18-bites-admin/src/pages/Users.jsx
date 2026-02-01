@@ -30,7 +30,7 @@ export const Users = () => {
   const fetchUsers = async (page = 1) => {
     setLoading(true);
     try {
-      const { data } = await api.get('/admin/users', {
+      const { data } = await api.get('api/admin/users', {
         params: {
           page,
           limit: pagination.limit,
@@ -72,7 +72,7 @@ export const Users = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
-        await api.delete(`/admin/users/${id}`);
+        await api.delete(`api/admin/users/${id}`);
         toast.success('User deleted successfully');
         fetchUsers(pagination.page);
       } catch (error) {
@@ -85,10 +85,10 @@ export const Users = () => {
   const handleSave = async () => {
     try {
       if (editingUser) {
-        await api.put(`/admin/users/${editingUser._id}`, formData);
+        await api.put(`api/admin/users/${editingUser._id}`, formData);
         toast.success('User updated successfully');
       } else {
-        await api.post('/admin/users', formData);
+        await api.post('api/admin/users', formData);
         toast.success('User created successfully');
       }
       setIsModalOpen(false);

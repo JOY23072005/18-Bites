@@ -19,43 +19,58 @@ export const getAllProducts = async (req, res) => {
   try {
     await connectDB();
 
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 10;
-    const search = req.query.search || "";
-    const category = req.query.category;
-    const SKU = req.query.SKU;
+    const {
+      page = 1,
+      limit = 10,
+      search = "",
+      category,
+      sku,
+      status = "active" // active | inactive | all
+    } = req.query;
 
-    const filter = { isActive: true };
+    const query = {};
 
+    // Status filter
+    if (status !== "all") {
+      query.isActive = status === "active";
+    }
+
+    // Search filter
     if (search) {
-      filter.name = { $regex: search, $options: "i" };
+      query.name = { $regex: search, $options: "i" };
     }
 
+    // Category filter
     if (category && mongoose.Types.ObjectId.isValid(category)) {
-      filter.category = category;
+      query.category = category;
     }
 
-    if (SKU) {
-      filter.SKU = SKU;
+    // SKU filter
+    if (sku) {
+      query.SKU = sku;
     }
 
-    const total = await Product.countDocuments(filter);
+    const totalItems = await Product.countDocuments(query);
 
-    const products = await Product.find(filter)
+    const products = await Product.find(query)
       .populate("category", "name")
+      .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
-      .limit(limit)
-      .sort({ createdAt: -1 });
+      .limit(Number(limit));
 
     res.json({
       success: true,
-      page,
-      totalPages: Math.ceil(total / limit),
-      totalProducts: total,
-      products
+      data: {
+        products,
+        page: Number(page),
+        limit: Number(limit),
+        totalItems,
+        totalPages: Math.ceil(totalItems / limit)
+      }
     });
+
   } catch (err) {
-    console.error("getAllProducts:", err.message);
+    console.error("getAllProducts:", err);
     res.status(500).json({ message: "Server error" });
   }
 };

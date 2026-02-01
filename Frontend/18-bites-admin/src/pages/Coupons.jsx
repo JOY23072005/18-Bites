@@ -39,7 +39,7 @@ export const Coupons = () => {
   const fetchCoupons = async (page = 1) => {
     setLoading(true);
     try {
-      const { data } = await api.get('/admin/coupons', {
+      const { data } = await api.get('api/admin/coupons', {
         params: { page, limit: pagination.limit, search: searchTerm },
       });
 

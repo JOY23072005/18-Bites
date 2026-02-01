@@ -27,7 +27,7 @@ export const Orders = () => {
   const fetchOrders = async (page = 1) => {
     setLoading(true);
     try {
-      const { data } = await api.get('/admin/orders', {
+      const { data } = await api.get('api/admin/orders', {
         params: {
           page,
           limit: pagination.limit,
@@ -66,7 +66,7 @@ export const Orders = () => {
 
     setUpdatingStatus(true);
     try {
-      await api.patch(`/admin/orders/${selectedOrder._id}`, { status: newStatus });
+      await api.patch(`api/admin/orders/${selectedOrder._id}`, { status: newStatus });
       toast.success(`Order status updated to ${newStatus}`);
       setSelectedOrder({ ...selectedOrder, status: newStatus });
       fetchOrders(pagination.page);

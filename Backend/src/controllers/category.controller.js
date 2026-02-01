@@ -8,14 +8,49 @@ export const getCategories = async (req, res) => {
   try {
     await connectDB();
 
-    const categories = await Category.find({ isActive: true })
-      .sort({ createdAt: -1 });
+    const {
+      page = 1,
+      limit = 10,
+      search = "",
+      status = "active" // active | inactive | all
+    } = req.query;
 
-    res.json({ success: true, categories });
+    const query = {};
+
+    // Status filter
+    if (status !== "all") {
+      query.isActive = status === "active";
+    }
+
+    // Search filter
+    if (search) {
+      query.name = { $regex: search, $options: "i" };
+    }
+
+    const totalItems = await Category.countDocuments(query);
+
+    const categories = await Category.find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(Number(limit));
+
+    res.json({
+      success: true,
+      data: {
+        categories,
+        page: Number(page),
+        limit: Number(limit),
+        totalItems,
+        totalPages: Math.ceil(totalItems / limit)
+      }
+    });
+
   } catch (err) {
+    console.error("getCategories:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 export const createCategory = async (req, res) => {
   const { name, slug,description } = req.body || {};

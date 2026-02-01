@@ -29,10 +29,10 @@ export const Login = () => {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
             <div className="w-12 h-12 bg-secondary-400 rounded-lg flex items-center justify-center font-bold text-xl text-gray-900">
-              AL
+              18
             </div>
             <div className="text-left">
-              <h1 className="text-2xl font-bold text-white">Aakash Life</h1>
+              <h1 className="text-2xl font-bold text-white">Bites</h1>
               <p className="text-primary-200 text-sm">Admin Panel</p>
             </div>
           </div>
@@ -77,7 +77,7 @@ export const Login = () => {
 
         {/* Footer */}
         <div className="text-center mt-8 text-primary-100 text-sm">
-          <p>© 2024 Aakash Life. All rights reserved.</p>
+          <p>© 2026 18 Bites. All rights reserved.</p>
         </div>
       </div>
     </div>

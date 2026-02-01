@@ -12,22 +12,21 @@ export const useAuthStore = create((set) => ({
     set({ isLoading: true });
     try {
       const { data } = await api.post('/api/auth/login', { email, password });
-      console.log(data);
-      const { token, user } = data.data;
+      const { success,accessToken, refreshToken } = data;
 
-      const { roleData } = await api.post('/api/user/role');
-      const { role } = roleData.data; 
+      localStorage.setItem('authToken', accessToken);
 
+      const response = await api.get('/api/user/profile');
+      const { user } = response.data; 
+
+      localStorage.setItem('user', JSON.stringify(user));
+      console.log(user.role);
       // Check role authorization
-      if (!['admin', 'super-admin'].includes(role)) {
+      if (!['admin', 'super-admin'].includes(user.role)) {
         toast.error('Access denied. Admin role required.');
         set({ isLoading: false });
         return false;
       }
-
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('user', JSON.stringify(user));
-
 
 
       set({
@@ -40,6 +39,7 @@ export const useAuthStore = create((set) => ({
       toast.success('Login successful');
       return true;
     } catch (error) {
+      
       set({ isLoading: false });
       return false;
     }

@@ -29,7 +29,6 @@ export const Products = () => {
     category: '',
     status: 'active',
     image: null,
-    imagePreview: '',
   });
 
   // Fetch products
@@ -77,7 +76,6 @@ export const Products = () => {
         setFormData({
           ...formData,
           image: file,
-          imagePreview: reader.result,
         });
       };
       reader.readAsDataURL(file);
@@ -94,7 +92,6 @@ export const Products = () => {
       category: product.category._id,
       status: product.status,
       image: null,
-      imagePreview: product.image || '',
     });
     setIsModalOpen(true);
   };

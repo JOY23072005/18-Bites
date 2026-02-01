@@ -61,11 +61,11 @@ export const Sidebar = () => {
         <div className="p-6 border-b border-primary-600">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-secondary-400 rounded-lg flex items-center justify-center font-bold">
-              AL
+              18
             </div>
             <div>
-              <h1 className="font-bold text-lg">Aakash</h1>
-              <p className="text-xs text-primary-200">Admin</p>
+              <h1 className="font-bold text-lg">Bites</h1>
+              <p className="text-xs text-primary-200">Admin Panel</p>
             </div>
           </div>
         </div>

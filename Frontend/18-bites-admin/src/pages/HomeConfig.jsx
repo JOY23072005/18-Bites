@@ -11,7 +11,6 @@ export const HomeConfig = () => {
   const [banners, setBanners] = useState([]);
   const [videoConfig, setVideoConfig] = useState({
     videoUrl: '',
-    videoTitle: '',
   });
   const [newBanner, setNewBanner] = useState({
     title: '',
@@ -24,9 +23,9 @@ export const HomeConfig = () => {
   const fetchHomeConfig = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/admin/homeconfig');
+      const { data } = await api.get('api/home/');
       setBanners(data.data.banners || []);
-      setVideoConfig(data.data.video || { videoUrl: '', videoTitle: '' });
+      setVideoConfig(data.data.videoIframeUrl || { videoUrl: '' });
     } catch (error) {
       toast.error('Failed to fetch home configuration');
     } finally {
@@ -136,13 +135,6 @@ export const HomeConfig = () => {
             value={videoConfig.videoUrl}
             onChange={(e) => setVideoConfig({ ...videoConfig, videoUrl: e.target.value })}
             placeholder="https://www.youtube.com/embed/..."
-          />
-
-          <Input
-            label="Video Title"
-            value={videoConfig.videoTitle}
-            onChange={(e) => setVideoConfig({ ...videoConfig, videoTitle: e.target.value })}
-            placeholder="Enter video title"
           />
 
           {/* Video Preview */}

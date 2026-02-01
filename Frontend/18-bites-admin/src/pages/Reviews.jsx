@@ -25,7 +25,7 @@ export const Reviews = () => {
   const fetchReviews = async (page = 1) => {
     setLoading(true);
     try {
-      const { data } = await api.get('/admin/reviews', {
+      const { data } = await api.get('api/admin/reviews', {
         params: {
           page,
           limit: pagination.limit,
@@ -62,7 +62,7 @@ export const Reviews = () => {
   const handleDeleteReview = async (id) => {
     if (window.confirm('Are you sure you want to delete this review?')) {
       try {
-        await api.delete(`/admin/reviews/${id}`);
+        await api.delete(`api/admin/reviews/${id}`);
         toast.success('Review deleted successfully');
         fetchReviews(pagination.page);
       } catch (error) {

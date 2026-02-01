@@ -28,7 +28,7 @@ export const Categories = () => {
   const fetchCategories = async (page = 1) => {
     setLoading(true);
     try {
-      const { data } = await api.get('/admin/categories', {
+      const { data } = await api.get('api/admin/categories', {
         params: { page, limit: pagination.limit, search: searchTerm },
       });
       setCategories(data.data.categories);
