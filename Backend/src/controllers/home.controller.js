@@ -6,7 +6,7 @@ export const addHomeBanner = async (req, res) => {
   try {
     await connectDB();
 
-    if (!req.files?.desktopImage || !req.files?.mobileImage) {
+    if (!req.files?.desktopImage && !req.files?.mobileImage) {
       return res.status(400).json({
         message: "Desktop and mobile images are required"
       });
