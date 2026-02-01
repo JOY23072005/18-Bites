@@ -6,7 +6,8 @@ import {
   updateAddress,
   deleteAddress,
   getMyOrders,
-  createAdmin
+  createAdmin,
+  getRole
 } from "../controllers/user.controller.js";
 
 import { authMiddleware } from "../middlewares/auth.middleware.js";
