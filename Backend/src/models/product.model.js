@@ -40,6 +40,11 @@ const productSchema = new mongoose.Schema(
 
     lastSoldAt: Date,
 
+    hotDealDate: {
+      type: Date,
+      index: true
+    },
+
     isActive: { type: Boolean, default: true }
   },
   { timestamps: true }

@@ -405,3 +405,140 @@ export const uploadProductsCSV = async (req, res) => {
     summary: results
   });
 };
+
+export const getFeaturedProducts = async (req, res) => {
+  try {
+    await connectDB();
+
+    const limit = Number(req.query.limit) || 10;
+
+    const products = await Product.find({
+      isActive: true,
+      isFeatured: true
+    })
+      .populate("category", "name")
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
+
+    const formatted = products.map(p => ({
+      ...p,
+      price: Number(p.price.toString()),
+      images: p.images.map(img => img.url)
+    }));
+
+    res.json({ success: true, products: formatted });
+
+  } catch (err) {
+    console.error("getFeaturedProducts:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const getTrendingProducts = async (req, res) => {
+  try {
+    await connectDB();
+
+    const limit = Number(req.query.limit) || 10;
+
+    const products = await Product.find({
+      isActive: true,
+      soldCount: { $gt: 0 }
+    })
+      .populate("category", "name")
+      .sort({ soldCount: -1, lastSoldAt: -1 })
+      .limit(limit)
+      .lean();
+
+    const formatted = products.map(p => ({
+      ...p,
+      price: Number(p.price.toString()),
+      images: p.images.map(img => img.url)
+    }));
+
+    res.json({ success: true, products: formatted });
+
+  } catch (err) {
+    console.error("getTrendingProducts:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const setTodaysHotDeal = async (req, res) => {
+  try {
+    await connectDB();
+
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid product ID" });
+    }
+
+    // Start of today (00:00)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // 🔥 Remove existing hot deal for today
+    await Product.updateMany(
+      { hotDealDate: today },
+      { $unset: { hotDealDate: "" } }
+    );
+
+    // 🔥 Set new hot deal
+    const product = await Product.findByIdAndUpdate(
+      id,
+      { hotDealDate: today },
+      { new: true }
+    );
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    res.json({
+      success: true,
+      message: "Today's hot deal set successfully",
+      productId: product._id
+    });
+
+  } catch (err) {
+    console.error("setTodaysHotDeal:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const getTodaysHotDeal = async (req, res) => {
+  try {
+    await connectDB();
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const product = await Product.findOne({
+      isActive: true,
+      hotDealDate: today
+    })
+      .populate("category", "name")
+      .lean();
+
+    if (!product) {
+      return res.json({
+        success: true,
+        product: null
+      });
+    }
+
+    res.json({
+      success: true,
+      product: {
+        ...product,
+        price: Number(product.price.toString()),
+        images: product.images.map(img => img.url)
+      }
+    });
+
+  } catch (err) {
+    console.error("getTodaysHotDeal:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};

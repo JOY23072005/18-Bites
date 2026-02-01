@@ -9,7 +9,11 @@ import {
   uploadProductImages,
   deleteProductImage,
   reorderProductImages,
-  uploadProductsCSV
+  uploadProductsCSV,
+  getFeaturedProducts,
+  getTrendingProducts,
+  setTodaysHotDeal,
+  getTodaysHotDeal
 } from "../controllers/product.controller.js";
 
 import { authMiddleware } from "../middlewares/auth.middleware.js";
@@ -83,5 +87,24 @@ ProdRoutes.post(
   uploadCSV,
   uploadProductsCSV
 );
+
+// Home Page Fetchs
+
+router.get("/featured", getFeaturedProducts);
+router.get("/trending", getTrendingProducts);
+
+// Hot Deal with timer
+
+// Admin
+router.put(
+  "/:id/hot-deal",
+  authMiddleware,
+  adminMiddleware,
+  setTodaysHotDeal
+);
+
+// Public
+router.get("/hot-deal", getTodaysHotDeal);
+
 
 export default ProdRoutes;
