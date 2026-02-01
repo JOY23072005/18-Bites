@@ -44,3 +44,17 @@ export const uploadImages = (req, res, next) => {
     next();
   });
 };
+
+export const uploadBannerImages = (req, res, next) => {
+  upload.fields([
+    { name: "desktopImage", maxCount: 1 },
+    { name: "mobileImage", maxCount: 1 }
+  ])(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({
+        message: err.message || "Banner upload error"
+      });
+    }
+    next();
+  });
+};
