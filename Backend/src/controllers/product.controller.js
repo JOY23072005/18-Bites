@@ -56,7 +56,8 @@ export const getAllProducts = async (req, res) => {
       .populate("category", "name")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .lean();
 
     const formattedProducts = products.map(product => ({
       ...product,

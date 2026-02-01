@@ -27,7 +27,7 @@ export const Products = () => {
     description: '',
     price: '',
     category: '',
-    status: 'active',
+    isActive: true,
     image: null,
   });
 
@@ -90,7 +90,7 @@ export const Products = () => {
       description: product.description,
       price: product.price,
       category: product.category._id,
-      status: product.status,
+      isActive: product.isActive,
       image: null,
     });
     setIsModalOpen(true);
@@ -117,7 +117,7 @@ export const Products = () => {
       submitData.append('description', formData.description);
       submitData.append('price', formData.price);
       submitData.append('category', formData.category);
-      submitData.append('status', formData.status);
+      submitData.append('isActive', formData.isActive);
       if (formData.image) {
         submitData.append('image', formData.image);
       }
@@ -178,10 +178,11 @@ export const Products = () => {
   };
 
   const columns = [
+    { key: 'SKU', label: 'SKU'},
     { key: 'name', label: 'Product Name' },
     { key: 'price', label: 'Price' },
     { key: 'category', label: 'Category' },
-    { key: 'status', label: 'Status' },
+    { key: 'isActive', label: 'Status' },
     { key: 'actions', label: 'Actions' },
   ];
 
@@ -221,18 +222,20 @@ export const Products = () => {
         onPageChange={(page) => fetchProducts(page)}
         renderRow={(product) => (
           <tr key={product._id} className="hover:bg-gray-50">
+
+            <td className="px-6 py-4 text-sm font-medium text-gray-900">{product.SKU}</td>
             <td className="px-6 py-4 text-sm font-medium text-gray-900">{product.name}</td>
             <td className="px-6 py-4 text-sm text-gray-600">₹{product.price}</td>
             <td className="px-6 py-4 text-sm text-gray-600">{product.category?.name}</td>
             <td className="px-6 py-4 text-sm">
               <span
                 className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                  product.status === 'active'
+                  product.isActive
                     ? 'text-green-600 bg-green-100'
                     : 'text-red-600 bg-red-100'
                 }`}
               >
-                {product.status}
+                {product.isActive?"Active":"Inactive"}
               </span>
             </td>
             <td className="px-6 py-4 text-sm flex gap-2">

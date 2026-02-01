@@ -75,7 +75,8 @@ export const getAdminOrders = async (req, res) => {
       .populate("user", "name email")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .lean();
 
     const formattedOrders = orders.map(order => ({
       ...order,
