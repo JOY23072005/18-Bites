@@ -439,9 +439,10 @@ export const getTrendingProducts = async (req, res) => {
   try {
     await connectDB();
 
-    const limit = Number(req.query.limit) || 10;
+    const limit = Math.max(Number(req.query.limit) || 10, 5);
 
-    const products = await Product.find({
+    // 1️⃣ First: real trending products
+    let products = await Product.find({
       isActive: true,
       soldCount: { $gt: 0 }
     })
@@ -450,16 +451,38 @@ export const getTrendingProducts = async (req, res) => {
       .limit(limit)
       .lean();
 
+    // 2️⃣ Fallback: fill remaining slots
+    if (products.length < 5) {
+      const remaining = 5 - products.length;
+
+      const excludeIds = products.map(p => p._id);
+
+      const fallbackProducts = await Product.find({
+        isActive: true,
+        _id: { $nin: excludeIds }
+      })
+        .populate("category", "name")
+        .sort({ createdAt: -1 }) // newest / popular fallback
+        .limit(remaining)
+        .lean();
+
+      products = [...products, ...fallbackProducts];
+    }
+
     const formatted = products.map(p => ({
       ...p,
-      price: Number(p.price.toString()),
+      price: Number(p.price),
       images: p.images.map(img => img.url)
     }));
 
-    res.json({ success: true, products: formatted });
+    res.json({
+      success: true,
+      count: formatted.length,
+      products: formatted
+    });
 
   } catch (err) {
-    console.error("getTrendingProducts:", err.message);
+    console.error("getTrendingProducts:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
