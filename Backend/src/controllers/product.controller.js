@@ -1,13 +1,18 @@
+import streamifier from "streamifier";
+import csv from "csv-parser";
+import mongoose from "mongoose";
 import Product from "../models/product.model.js";
 import Category from "../models/category.model.js";
+import cloudinary from "../lib/cloudinary.js";
 import { connectDB } from "../lib/db.js";
-import mongoose from "mongoose";
+import { toDecimal } from "../lib/utils/price.js";
 
 /* Query params:
  *  - page
  *  - limit
  *  - search
  *  - category
+ *  - SKU
  */
 
 export const getAllProducts = async (req, res) => {
@@ -18,6 +23,7 @@ export const getAllProducts = async (req, res) => {
     const limit = Number(req.query.limit) || 10;
     const search = req.query.search || "";
     const category = req.query.category;
+    const SKU = req.query.SKU;
 
     const filter = { isActive: true };
 
@@ -27,6 +33,10 @@ export const getAllProducts = async (req, res) => {
 
     if (category && mongoose.Types.ObjectId.isValid(category)) {
       filter.category = category;
+    }
+
+    if (SKU) {
+      filter.SKU = SKU;
     }
 
     const total = await Product.countDocuments(filter);
@@ -131,6 +141,126 @@ export const createProduct = async (req, res) => {
   }
 };
 
+export const uploadProductImages = async (req, res) => {
+  const uploadedImages=[]
+  try {
+    await connectDB();
+
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid product ID" });
+    }
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "No images provided" });
+    }
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    // Upload all images in parallel
+    const uploadPromises = req.files.map(file => {
+      return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder: "18Bites/product-images",
+            resource_type: "image",
+            transformation: [
+              { width: 1200, height: 1200, crop: "limit" },
+              { quality: "auto" },
+              { fetch_format: "auto" }
+            ]
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve({
+              url: result.secure_url,
+              publicId: result.public_id
+            });
+          }
+        );
+
+        streamifier.createReadStream(file.buffer).pipe(stream);
+      });
+    });
+
+    uploadProductImages = await Promise.all(uploadPromises);
+
+    // Append images
+    product.images.push(...uploadedImages);
+    await product.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Product images uploaded successfully",
+      images: product.images
+    });
+
+  } catch (error) {
+
+    await Promise.all(
+      uploadedImages.map(img =>
+        cloudinary.uploader.destroy(img.publicId)
+      )
+    );
+
+    console.error("uploadProductImages error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const deleteProductImage = async (req, res) => {
+  const { id } = req.params;
+  const { publicId } = req.body;
+
+  const product = await Product.findById(id);
+  if (!product) return res.status(404).json({ message: "Product not found" });
+
+  await cloudinary.uploader.destroy(publicId);
+
+  product.images = product.images.filter(img => img.publicId !== publicId);
+  await product.save();
+
+  res.json({ success: true, images: product.images });
+};
+
+export const reorderProductImages = async (req, res) => {
+  const { id } = req.params;
+  const { order } = req.body;
+
+  if (!Array.isArray(order)) {
+    return res.status(400).json({ message: "Invalid order array" });
+  }
+
+  await connectDB();
+
+  const product = await Product.findById(id);
+  if (!product) {
+    return res.status(404).json({ message: "Product not found" });
+  }
+
+  const imageMap = new Map(
+    product.images.map(img => [img.publicId, img])
+  );
+
+  const reordered = [];
+  for (const pid of order) {
+    if (!imageMap.has(pid)) {
+      return res.status(400).json({ message: "Invalid image reference" });
+    }
+    reordered.push(imageMap.get(pid));
+  }
+
+  product.images = reordered;
+  await product.save();
+
+  res.json({ success: true, images: product.images });
+};
+
+
 export const updateProduct = async (req, res) => {
   const { id } = req.params;
   const updates = req.body || {};
@@ -186,4 +316,92 @@ export const deleteProduct = async (req, res) => {
     console.error("deleteProduct:", err.message);
     res.status(500).json({ message: "Server error" });
   }
+};
+
+// ==> BULK PROCESSOR <==
+
+export const uploadProductsCSV = async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: "CSV file required" });
+  }
+
+  await connectDB();
+
+  const rows = [];
+
+  // Parse CSV from memory buffer
+  await new Promise((resolve, reject) => {
+    streamifier
+      .createReadStream(req.file.buffer)
+      .pipe(csv())
+      .on("data", (row) => rows.push(row))
+      .on("end", resolve)
+      .on("error", reject);
+  });
+
+  // 🔹 Group rows by SKU
+  const grouped = {};
+  for (const row of rows) {
+    if (!row.SKU) continue;
+    grouped[row.SKU] ??= [];
+    grouped[row.SKU].push(row);
+  }
+
+  const results = {
+    created: 0,
+    failed: [],
+  };
+
+  // 🔹 Process each product group
+  for (const key of Object.keys(grouped)) {
+    try {
+      const entries = grouped[key];
+
+      const base = entries.find(r => r.name); // first row with product data
+      if (!base) throw new Error("Base product row missing");
+
+      // Resolve category
+      let categoryId = null;
+      if (base.categorySlug) {
+        const category = await Category.findOne({ slug: base.categorySlug });
+        if (!category) throw new Error("Invalid category slug");
+        categoryId = category._id;
+      }
+
+      // Collect images
+      const images = entries
+        .filter(r => r.imageUrl)
+        .sort((a, b) => Number(a.imagePosition) - Number(b.imagePosition))
+        .map(r => ({
+          url: r.imageUrl,
+          publicId: null // optional (if pre-uploaded)
+        }));
+
+      // Create product
+      await Product.create({
+        SKU: key,
+        name: base.name,
+        description: base.description || "",
+        price: toDecimal(base.price),
+        stock: Number(base.stock),
+        category: categoryId,
+        isFeatured: base.isFeatured === "true",
+        images,
+        isActive: true
+      });
+
+      results.created++;
+
+    } catch (err) {
+      results.failed.push({
+        SKU: key,
+        error: err.message
+      });
+    }
+  }
+
+  res.json({
+    success: true,
+    summary: results
+  });
 };

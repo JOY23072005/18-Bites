@@ -2,6 +2,8 @@ import mongoose from "mongoose";
 
 const productSchema = new mongoose.Schema(
   {
+    SKU: {type: String,required: true, unique: true},
+
     name: { type: String, required: true },
 
     description: String,
@@ -10,7 +12,12 @@ const productSchema = new mongoose.Schema(
 
     stock: { type: Number, required: true },
 
-    images: [String],
+    images: [
+      {
+        url: String,
+        publicId: String
+      }
+    ],
 
     category: {
       type: mongoose.Schema.Types.ObjectId,
@@ -20,6 +27,18 @@ const productSchema = new mongoose.Schema(
     ratings: { type: Number, default: 0 },
 
     numReviews: { type: Number, default: 0 },
+
+    isFeatured: {
+      type: Boolean,
+      default: false
+    },
+
+    soldCount: {
+      type: Number,
+      default: 0
+    },
+
+    lastSoldAt: Date,
 
     isActive: { type: Boolean, default: true }
   },
@@ -31,5 +50,7 @@ productSchema.index({ name: 1, isActive: 1 });
 productSchema.index({ category: 1, isActive: 1 });
 productSchema.index({ createdAt: -1 });
 productSchema.index({ price: 1 });
+productSchema.index({ soldCount: -1 });
+productSchema.index({ isFeatured: 1 });
 
 export default mongoose.model("Product", productSchema);
