@@ -52,7 +52,7 @@ export const Orders = () => {
 
   useEffect(() => {
     fetchOrders(1);
-  }, [searchTerm, statusFilter]);
+  }, [searchTerm, statusFilter,orders]);
 
   // Handle view order
   const handleViewOrder = (order) => {

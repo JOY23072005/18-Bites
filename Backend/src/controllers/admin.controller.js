@@ -26,10 +26,10 @@ export const getDashboardStats = async (req, res) => {
       Product.countDocuments(),
       Product.countDocuments({ isActive: true }),
       Order.countDocuments(),
-      Order.countDocuments({ status: "pending" }),
+      Order.countDocuments({ orderStatus: "pending" }),
       Review.countDocuments(),
       Order.aggregate([
-        { $match: { status: "delivered" } },
+        { $match: { orderStatus: "delivered" } },
         { $group: { _id: null, total: { $sum: "$totalAmount" } } }
       ])
     ]);
@@ -63,8 +63,10 @@ export const getAdminOrders = async (req, res) => {
     const { page = 1, limit = 10, search = "", status } = req.query;
 
     const query = {};
-    if (status) query.status = status;
-    if (search) query.orderId = { $regex: search, $options: "i" };
+    if (status) query.orderStatus = status;
+    if (search && search.trim() !== "") {
+      query.orderId = { $regex: search.trim(), $options: "i" };
+    }
 
     const totalItems = await Order.countDocuments(query);
 
