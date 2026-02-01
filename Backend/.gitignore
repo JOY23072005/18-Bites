@@ -1,3 +1,4 @@
 upload.product.csv
 .env
 .gitignore
+node_modules
