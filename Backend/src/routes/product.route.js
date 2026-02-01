@@ -90,13 +90,13 @@ ProdRoutes.post(
 
 // Home Page Fetchs
 
-router.get("/featured", getFeaturedProducts);
-router.get("/trending", getTrendingProducts);
+ProdRoutes.get("/featured", getFeaturedProducts);
+ProdRoutes.get("/trending", getTrendingProducts);
 
 // Hot Deal with timer
 
 // Admin
-router.put(
+ProdRoutes.put(
   "/:id/hot-deal",
   authMiddleware,
   adminMiddleware,
@@ -104,7 +104,7 @@ router.put(
 );
 
 // Public
-router.get("/hot-deal", getTodaysHotDeal);
+ProdRoutes.get("/hot-deal", getTodaysHotDeal);
 
 
 export default ProdRoutes;
