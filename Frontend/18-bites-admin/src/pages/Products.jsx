@@ -100,7 +100,7 @@ export const Products = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to deactivate this product?')) {
       try {
-        await api.delete(`/admin/products/${id}`);
+        await api.delete(`/api/products/${id}`);
         toast.success('Product deactivated successfully');
         fetchProducts(pagination.page);
       } catch (error) {

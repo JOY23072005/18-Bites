@@ -321,17 +321,15 @@ export const deleteProduct = async (req, res) => {
       return res.status(400).json({ message: "Invalid product ID" });
     }
 
-    const product = await Product.findById(id);
-    if (!product) {
+    const deletedProduct = await Product.findByIdAndDelete(id);
+
+    if (!deletedProduct) {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    product.isActive = false;
-    await product.save();
-
     res.json({
       success: true,
-      message: "Product deleted successfully"
+      message: "Product permanently deleted successfully",
     });
   } catch (err) {
     console.error("deleteProduct:", err.message);
