@@ -22,8 +22,9 @@ export const Users = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    password:"",
     role: 'user',
-    status: 'active',
+    isActive: true,
   });
 
   // Fetch users
@@ -63,7 +64,7 @@ export const Users = () => {
       name: user.name,
       email: user.email,
       role: user.role,
-      status: user.status,
+      isActive: user.isActive,
     });
     setIsModalOpen(true);
   };
@@ -93,7 +94,7 @@ export const Users = () => {
       }
       setIsModalOpen(false);
       setEditingUser(null);
-      setFormData({ name: '', email: '', role: 'user', status: 'active' });
+      setFormData({ name: '', email: '',password:'', role: 'user', status: 'active' });
       fetchUsers(pagination.page);
     } catch (error) {
       toast.error(editingUser ? 'Failed to update user' : 'Failed to create user');
@@ -104,7 +105,7 @@ export const Users = () => {
     { key: 'name', label: 'Name' },
     { key: 'email', label: 'Email' },
     { key: 'role', label: 'Role' },
-    { key: 'status', label: 'Status' },
+    { key: 'isActive', label: 'Status' },
     { key: 'actions', label: 'Actions' },
   ];
 
@@ -142,19 +143,19 @@ export const Users = () => {
             <td className="px-6 py-4 text-sm font-medium text-gray-900">{user.name}</td>
             <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
             <td className="px-6 py-4 text-sm">
-              <span className="px-3 py-1 text-xs font-semibold text-white bg-primary-600 rounded-full capitalize">
+              <span className="px-3 py-1 text-xs font-semibold text-white bg-primary-500 rounded-full capitalize whitespace-nowrap">
                 {user.role}
               </span>
             </td>
             <td className="px-6 py-4 text-sm">
               <span
                 className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                  user.status === 'active'
+                  user.isActive
                     ? 'text-green-600 bg-green-100'
                     : 'text-red-600 bg-red-100'
                 }`}
               >
-                {user.status}
+                {user.isActive?"Active":"Inactive"}
               </span>
             </td>
             <td className="px-6 py-4 text-sm flex gap-2">
@@ -181,7 +182,7 @@ export const Users = () => {
         onClose={() => {
           setIsModalOpen(false);
           setEditingUser(null);
-          setFormData({ name: '', email: '', role: 'user', status: 'active' });
+          setFormData({ name: '', email: '',password:'', role: 'user', status: 'active' });
         }}
         title={editingUser ? 'Edit User' : 'Add New User'}
       >
@@ -202,6 +203,14 @@ export const Users = () => {
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             placeholder="Enter email"
           />
+          <Input
+            label="Password"
+            type="password"
+            required
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            placeholder="Enter password"
+          />
 
           <Select
             label="Role"
@@ -218,11 +227,11 @@ export const Users = () => {
           <Select
             label="Status"
             required
-            value={formData.status}
-            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+            value={formData.isActive}
+            onChange={(e) => setFormData({ ...formData, isActive: e.target.value })}
             options={[
-              { value: 'active', label: 'Active' },
-              { value: 'inactive', label: 'Inactive' },
+              { value: true, label: 'Active' },
+              { value: false, label: 'Inactive' },
             ]}
           />
 

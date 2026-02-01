@@ -46,13 +46,14 @@ export const Orders = () => {
     } catch (error) {
       toast.error('Failed to fetch orders');
     } finally {
+      console.log("api call was finished");
       setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchOrders(1);
-  }, [searchTerm, statusFilter,orders]);
+  }, [searchTerm, statusFilter]);
 
   // Handle view order
   const handleViewOrder = (order) => {
@@ -139,7 +140,7 @@ export const Orders = () => {
         renderRow={(order) => (
           <tr key={order._id} className="hover:bg-gray-50">
             <td className="px-6 py-4 text-sm font-mono font-medium text-gray-900">
-              #{order.orderId}
+              #{order?.orderId}
             </td>
             <td className="px-6 py-4 text-sm text-gray-600">
               <div>
@@ -148,11 +149,12 @@ export const Orders = () => {
               </div>
             </td>
             <td className="px-6 py-4 text-sm font-semibold text-gray-900">
-              ₹{order.totalAmount?.toFixed(2)}
+              {/* ₹{order.totalAmount?.toFixed(2)} */}
+              {typeof(order.totalAmount)}
             </td>
             <td className="px-6 py-4 text-sm">
               <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
-                {order.status}
+                {order?.orderStatus}
               </span>
             </td>
             <td className="px-6 py-4 text-sm text-gray-600">

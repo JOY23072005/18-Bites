@@ -21,7 +21,10 @@ export const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
         />
 
         {/* Center modal */}
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle w-full sm:max-w-lg">
+        <div
+          className={`relative z-50 inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle w-full ${sizes[size]}`}
+        >
+
           {/* Header */}
           <div className="flex items-center justify-between bg-gray-50 px-6 py-4 border-b">
             <h3 className="text-lg font-medium text-gray-900">{title}</h3>

@@ -41,7 +41,7 @@ export const Dashboard = () => {
     setLoading(true);
     try {
       const { data } = await api.get('/api/admin/dashboard/stats');
-      console.log(data.data);
+      // console.log(data.data);
       setStats(data.data);
     } catch (error) {
       toast.error('Failed to fetch dashboard stats');
