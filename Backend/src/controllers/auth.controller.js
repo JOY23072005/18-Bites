@@ -177,9 +177,7 @@ export const requestOtp = async (req, res) => {
 
     await connectDB();
 
-    const user = await User.findOne({
-        $or: [{ email }, { phone }]
-    })
+    const user = email?await User.findOne({ email }): await User.findOne({ phone })
 
     // Purpose-based validation
     if ((purpose === "LOGIN" || purpose === "RESET_PASSWORD") && !user) {
@@ -235,9 +233,7 @@ export const verifyOtp = async (req, res) => {
     return res.json({ success: true, message: "OTP verified" });
   }
 
-  const user = await User.findOne({
-    $or: [{ email }, { phone }]
-  });
+  const user = email?await User.findOne({ email }): await User.findOne({ phone })
 
   if (!user) return res.status(400).json({ message: "User not found" });
 
