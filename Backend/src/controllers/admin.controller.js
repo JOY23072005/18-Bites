@@ -23,7 +23,7 @@ export const getDashboardStats = async (req, res) => {
       revenueAgg
     ] = await Promise.all([
       User.countDocuments(),
-      User.countDocuments({ status: "active" }),
+      User.countDocuments({ isActive: true }),
       Product.countDocuments(),
       Product.countDocuments({ isActive: true }),
       Order.countDocuments(),
