@@ -13,7 +13,7 @@ import {
   LogOut,
   Settings,
 } from 'lucide-react';
-import { useAuthStore } from '../store/authStore';
+import { useAuthStore } from '../store/authStore.js';
 
 export const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);

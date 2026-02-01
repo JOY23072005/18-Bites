@@ -171,3 +171,17 @@ export const getMyOrders = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+export const getRole = async (req,res) =>{
+  try {
+    await connectDB();
+
+    const user = await User.findById(req.userId).select("-password +role");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json({ success: true, role: user.role });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

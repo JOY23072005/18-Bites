@@ -1,5 +1,6 @@
+
 import { forwardRef } from 'react';
-import { cn } from '../utils/classNames';
+import { cn } from '../utils/classNames.js';
 
 const Button = forwardRef(
   (

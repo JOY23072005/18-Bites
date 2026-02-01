@@ -39,4 +39,5 @@ UserRoutes.delete("/address/:index", authMiddleware, deleteAddress);
 // GET /api/user/orders
 UserRoutes.get("/orders", authMiddleware, getMyOrders);
 
+UserRoutes.get("/role",authMiddleware,getRole);
 export default UserRoutes;
