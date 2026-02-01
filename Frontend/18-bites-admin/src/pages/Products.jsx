@@ -35,7 +35,7 @@ export const Products = () => {
   const fetchProducts = async (page = 1) => {
     setLoading(true);
     try {
-      const { data } = await api.get('/admin/products', {
+      const { data } = await api.get('/api/products', {
         params: { page, limit: pagination.limit, search: searchTerm },
       });
       setProducts(data.data.products);
@@ -55,8 +55,8 @@ export const Products = () => {
   // Fetch categories
   const fetchCategories = async () => {
     try {
-      const { data } = await api.get('/admin/categories');
-      setCategories(data.data);
+      const { data } = await api.get('/api/categories');
+      setCategories(data.data.categories);
     } catch (error) {
       toast.error('Failed to fetch categories');
     }

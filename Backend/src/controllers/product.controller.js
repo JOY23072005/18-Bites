@@ -5,7 +5,7 @@ import Product from "../models/product.model.js";
 import Category from "../models/category.model.js";
 import cloudinary from "../lib/cloudinary.js";
 import { connectDB } from "../lib/db.js";
-import { toDecimal } from "../lib/utils/price.js";
+import { fromDecimal, toDecimal } from "../lib/utils/price.js";
 
 /* Query params:
  *  - page
@@ -58,10 +58,15 @@ export const getAllProducts = async (req, res) => {
       .skip((page - 1) * limit)
       .limit(Number(limit));
 
+    const formattedProducts = products.map(product => ({
+      ...product,
+      price:fromDecimal(product.price)
+    }));
+
     res.json({
       success: true,
       data: {
-        products,
+        products:formattedProducts,
         page: Number(page),
         limit: Number(limit),
         totalItems,

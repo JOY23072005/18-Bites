@@ -20,7 +20,7 @@ export const useAuthStore = create((set) => ({
       const { user } = response.data; 
 
       localStorage.setItem('user', JSON.stringify(user));
-      console.log(user.role);
+      // console.log(user.role);
       // Check role authorization
       if (!['admin', 'super-admin'].includes(user.role)) {
         toast.error('Access denied. Admin role required.');
@@ -31,7 +31,7 @@ export const useAuthStore = create((set) => ({
 
       set({
         user,
-        token,
+        accessToken,
         isAuthenticated: true,
         isLoading: false,
       });
@@ -39,7 +39,7 @@ export const useAuthStore = create((set) => ({
       toast.success('Login successful');
       return true;
     } catch (error) {
-      
+      console.error(error);
       set({ isLoading: false });
       return false;
     }

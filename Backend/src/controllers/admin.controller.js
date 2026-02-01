@@ -3,6 +3,7 @@ import Product from "../models/product.model.js";
 import Order from "../models/order.model.js";
 import Review from "../models/review.model.js";
 import { connectDB } from "../lib/db.js";
+import { fromDecimal } from "../lib/utils/price.js";
 
 /* =========================
    DASHBOARD STATS
@@ -44,7 +45,7 @@ export const getDashboardStats = async (req, res) => {
         totalOrders,
         pendingOrders,
         totalReviews,
-        totalRevenue: revenueAgg[0]?.total || 0
+        totalRevenue: fromDecimal(revenueAgg[0]?.total) || 0
       }
     });
   } catch (err) {
@@ -76,10 +77,17 @@ export const getAdminOrders = async (req, res) => {
       .skip((page - 1) * limit)
       .limit(Number(limit));
 
+    const formattedOrders = orders.map(order => ({
+      ...order,
+      totalAmount: Number(order.totalAmount?.toString()),
+      subTotal: Number(order.subTotal?.toString()),
+      discount: Number(order.discount?.toString()),
+    }));
+    
     res.json({
       success: true,
       data: {
-        orders,
+        order:formattedOrders,
         page: Number(page),
         limit: Number(limit),
         totalItems,

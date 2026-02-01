@@ -101,7 +101,7 @@ export const Sidebar = () => {
               logout();
               setIsOpen(false);
             }}
-            className="w-full flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
+            className="w-full hover:cursor-pointer flex items-center gap-2 bg-red-800/100 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
           >
             <LogOut size={16} />
             Logout

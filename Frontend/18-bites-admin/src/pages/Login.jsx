@@ -16,6 +16,7 @@ export const Login = () => {
     e.preventDefault();
     setLoading(true);
     const success = await login(email, password);
+    console.log(success);
     setLoading(false);
     if (success) {
       navigate('/dashboard');
@@ -49,7 +50,7 @@ export const Login = () => {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@aakashlife.com"
+              placeholder="admin@18bites.com"
             />
 
             <Input
