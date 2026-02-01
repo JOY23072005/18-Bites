@@ -32,7 +32,7 @@ app.use("/api/coupons", CouponRoutes);
 app.use("/api/reviews", ReviewRoutes);
 app.use("/api/cart", CartRoutes);
 app.use("/api/payment", PayRoutes);
-app.use("/api/Home",HomeRoutes);
+app.use("/api/home",HomeRoutes);
 // app.listen('5001',()=>{
 //     console.log("server running");
 // })
