@@ -1,8 +1,8 @@
 import express from "express"
-import { authMiddleware } from "../middlewares/auth.middleware";
-import { adminMiddleware } from "../middlewares/admin.middleware";
-import { uploadBannerImages } from "../middlewares/upload.middleware";
-import { addHomeBanner, getHomeConfig, updateHomeVideo } from "../controllers/home.controller";
+import { authMiddleware } from "../middlewares/auth.middleware.js";
+import { adminMiddleware } from "../middlewares/admin.middleware.js";
+import { uploadBannerImages } from "../middlewares/upload.middleware.js";
+import { addHomeBanner, getHomeConfig, updateHomeVideo } from "../controllers/home.controller.js";
 
 const HomeRoutes = express.Router();
 
