@@ -54,18 +54,23 @@ export const getAllProducts = async (req, res) => {
       query.SKU = sku;
     }
 
-    // ✅ Price Range Filter
-    if (minPrice || maxPrice) {
+    // ✅ Proper Decimal128 price filtering
+    if (minPrice !== undefined || maxPrice !== undefined) {
       query.price = {};
 
-      if (minPrice) {
-        query.price.$gte = toDecimal(minPrice);
+      if (minPrice !== undefined && minPrice !== "") {
+        query.price.$gte = mongoose.Types.Decimal128.fromString(
+          Number(minPrice).toFixed(2)
+        );
       }
 
-      if (maxPrice) {
-        query.price.$lte = toDecimal(maxPrice);
+      if (maxPrice !== undefined && maxPrice !== "") {
+        query.price.$lte = mongoose.Types.Decimal128.fromString(
+          Number(maxPrice).toFixed(2)
+        );
       }
     }
+
 
     const totalItems = await Product.countDocuments(query);
 
