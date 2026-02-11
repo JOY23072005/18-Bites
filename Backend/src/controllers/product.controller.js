@@ -14,6 +14,7 @@ import { uploadFilesToCloudinary } from "../lib/utils/uploadImages.js";
  *  - search
  *  - category
  *  - SKU
+ *  - Min-Max price range
  */
 
 export const getAllProducts = async (req, res) => {
@@ -26,7 +27,9 @@ export const getAllProducts = async (req, res) => {
       search = "",
       category,
       sku,
-      status = "active" // active | inactive | all
+      status = "active",
+      minPrice,
+      maxPrice
     } = req.query;
 
     const query = {};
@@ -51,6 +54,19 @@ export const getAllProducts = async (req, res) => {
       query.SKU = sku;
     }
 
+    // ✅ Price Range Filter
+    if (minPrice || maxPrice) {
+      query.price = {};
+
+      if (minPrice) {
+        query.price.$gte = toDecimal(minPrice);
+      }
+
+      if (maxPrice) {
+        query.price.$lte = toDecimal(maxPrice);
+      }
+    }
+
     const totalItems = await Product.countDocuments(query);
 
     const products = await Product.find(query)
@@ -62,13 +78,13 @@ export const getAllProducts = async (req, res) => {
 
     const formattedProducts = products.map(product => ({
       ...product,
-      price:fromDecimal(product.price)
+      price: fromDecimal(product.price)
     }));
 
     res.json({
       success: true,
       data: {
-        products:formattedProducts,
+        products: formattedProducts,
         page: Number(page),
         limit: Number(limit),
         totalItems,
