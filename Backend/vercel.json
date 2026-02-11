@@ -1,15 +1,47 @@
 {
-  "version": 2,
+  "version": 3,
+  "installCommand": "npm install --legacy-peer-deps",
   "builds": [
     {
-      "src": "src/index.js",
+      "src": "server/index.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "client/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "build"
+      }
     }
   ],
   "routes": [
     {
+      "src": "/api/(.*)",
+      "dest": "server/index.js"
+    },
+    {
       "src": "/(.*)",
-      "dest": "src/index.js"
+      "dest": "client/build/$1"
     }
-  ]
-}
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
+}   
