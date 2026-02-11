@@ -6,6 +6,7 @@ import Category from "../models/category.model.js";
 import cloudinary from "../lib/cloudinary.js";
 import { connectDB } from "../lib/db.js";
 import { fromDecimal, toDecimal } from "../lib/utils/price.js";
+import { uploadFilesToCloudinary } from "../lib/utils/uploadImages.js";
 
 /* Query params:
  *  - page
@@ -130,40 +131,82 @@ export const getProductsByCategory = async (req, res) => {
 };
 
 export const createProduct = async (req, res) => {
-  const { name, price, stock, category, description, images } = req.body || {};
-
-  if (!name || !price || stock == null) {
-    return res.status(400).json({ message: "Required fields missing" });
-  }
-
   try {
     await connectDB();
 
-    if (category && !mongoose.Types.ObjectId.isValid(category)) {
-      return res.status(400).json({ message: "Invalid category ID" });
-    }
-
-    const product = await Product.create({
+    const {
+      SKU,
       name,
+      description,
       price,
       stock,
       category,
+      isFeatured = false,
+      isActive = true,
+      images: imageUrls = []
+    } = req.body || {};
+
+    // ✅ Required validation
+    if (!SKU || !name || !price || stock == null) {
+      return res.status(400).json({
+        success: false,
+        message: "SKU, name, price and stock are required"
+      });
+    }
+
+    // ✅ Check duplicate SKU
+    const existing = await Product.findOne({ SKU });
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: "Product with this SKU already exists"
+      });
+    }
+
+    let images = [];
+
+    // 1️⃣ Upload from files (multipart form)
+    if (req.files && req.files.length > 0) {
+      images = await uploadFilesToCloudinary(req.files);
+    }
+
+    // 2️⃣ URLs (optional, like CSV)
+    if (Array.isArray(imageUrls)) {
+      images.push(
+        ...imageUrls.map((url) => ({
+          url,
+          publicId: null
+        }))
+      );
+    }
+
+    const product = await Product.create({
+      SKU,
+      name,
       description,
+      price: toDecimal(price),
+      stock: Number(stock),
+      category: category || null,
+      isFeatured,
+      isActive,
       images
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       product
     });
+
   } catch (err) {
-    console.error("createProduct:", err.message);
-    res.status(500).json({ message: "Server error" });
+    console.error("createProduct:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
   }
 };
 
 export const uploadProductImages = async (req, res) => {
-  const uploadedImages=[]
   try {
     await connectDB();
 
@@ -182,7 +225,7 @@ export const uploadProductImages = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    // Upload all images in parallel
+    // Upload images
     const uploadPromises = req.files.map(file => {
       return new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
@@ -196,8 +239,9 @@ export const uploadProductImages = async (req, res) => {
             ]
           },
           (error, result) => {
-            if (error) reject(error);
-            else resolve({
+            if (error) return reject(error);
+
+            resolve({
               url: result.secure_url,
               publicId: result.public_id
             });
@@ -208,9 +252,8 @@ export const uploadProductImages = async (req, res) => {
       });
     });
 
-    uploadProductImages = await Promise.all(uploadPromises);
+    const uploadedImages = await Promise.all(uploadPromises);
 
-    // Append images
     product.images.push(...uploadedImages);
     await product.save();
 
@@ -221,31 +264,61 @@ export const uploadProductImages = async (req, res) => {
     });
 
   } catch (error) {
-
-    await Promise.all(
-      uploadedImages.map(img =>
-        cloudinary.uploader.destroy(img.publicId)
-      )
-    );
-
     console.error("uploadProductImages error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
 export const deleteProductImage = async (req, res) => {
-  const { id } = req.params;
-  const { publicId } = req.body;
+  try {
+    await connectDB();
 
-  const product = await Product.findById(id);
-  if (!product) return res.status(404).json({ message: "Product not found" });
+    const { id } = req.params;
+    const { publicId, url } = req.body;
 
-  await cloudinary.uploader.destroy(publicId);
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid product ID" });
+    }
 
-  product.images = product.images.filter(img => img.publicId !== publicId);
-  await product.save();
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
 
-  res.json({ success: true, images: product.images });
+    // 🔥 Try Cloudinary deletion (if publicId exists)
+    if (publicId) {
+      try {
+        const result = await cloudinary.uploader.destroy(publicId);
+
+        // optional check
+        if (result.result !== "ok" && result.result !== "not found") {
+          console.warn("Cloudinary delete warning:", result);
+        }
+      } catch (cloudErr) {
+        console.warn("Cloudinary deletion failed:", cloudErr.message);
+        // DO NOT THROW
+      }
+    }
+
+    // 🔥 Remove from DB (fallback-safe)
+    product.images = product.images.filter((img) => {
+      if (publicId) return img.publicId !== publicId;
+      if (url) return img.url !== url;
+      return true;
+    });
+
+    await product.save();
+
+    return res.json({
+      success: true,
+      message: "Image removed successfully",
+      images: product.images,
+    });
+
+  } catch (err) {
+    console.error("deleteProductImage:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
 };
 
 export const reorderProductImages = async (req, res) => {
@@ -296,6 +369,10 @@ export const updateProduct = async (req, res) => {
     const product = await Product.findById(id);
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
+    }
+
+    if (updates.price) {
+      updates.price = toDecimal(updates.price);
     }
 
     Object.assign(product, updates);
@@ -506,7 +583,7 @@ export const getTrendingProducts = async (req, res) => {
   }
 };
 
-export const setTodaysHotDeal = async (req, res) => {
+export const setHotDealForWeek = async (req, res) => {
   try {
     await connectDB();
 
@@ -516,20 +593,28 @@ export const setTodaysHotDeal = async (req, res) => {
       return res.status(400).json({ message: "Invalid product ID" });
     }
 
-    // Start of today (00:00)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // 🔥 Remove existing hot deal for today
+    const endDate = new Date(today);
+    endDate.setDate(endDate.getDate() + 7);
+
+    // 🔥 Remove overlapping hot deals
     await Product.updateMany(
-      { hotDealDate: today },
-      { $unset: { hotDealDate: "" } }
+      {
+        "hotDeal.endDate": { $gte: today }
+      },
+      { $unset: { hotDeal: "" } }
     );
 
-    // 🔥 Set new hot deal
     const product = await Product.findByIdAndUpdate(
       id,
-      { hotDealDate: today },
+      {
+        hotDeal: {
+          startDate: today,
+          endDate: endDate
+        }
+      },
       { new: true }
     );
 
@@ -539,35 +624,34 @@ export const setTodaysHotDeal = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Today's hot deal set successfully",
-      productId: product._id
+      message: "🔥 Hot deal set for 7 days",
+      productId: product._id,
+      startDate: today,
+      endDate: endDate
     });
 
   } catch (err) {
-    console.error("setTodaysHotDeal:", err.message);
+    console.error("setHotDealForWeek:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-export const getTodaysHotDeal = async (req, res) => {
+export const getCurrentHotDeal = async (req, res) => {
   try {
     await connectDB();
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const now = new Date();
 
     const product = await Product.findOne({
       isActive: true,
-      hotDealDate: today
+      "hotDeal.startDate": { $lte: now },
+      "hotDeal.endDate": { $gte: now }
     })
       .populate("category", "name")
       .lean();
 
     if (!product) {
-      return res.json({
-        success: true,
-        product: null
-      });
+      return res.json({ success: true, product: null });
     }
 
     res.json({
@@ -575,12 +659,13 @@ export const getTodaysHotDeal = async (req, res) => {
       product: {
         ...product,
         price: Number(product.price.toString()),
-        images: product.images.map(img => img.url)
+        images: product.images.map(img => img.url),
+        hotDealEndsAt: product.hotDeal.endDate
       }
     });
 
   } catch (err) {
-    console.error("getTodaysHotDeal:", err.message);
+    console.error("getCurrentHotDeal:", err);
     res.status(500).json({ message: "Server error" });
   }
 };

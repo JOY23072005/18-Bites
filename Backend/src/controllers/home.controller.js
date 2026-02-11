@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import HomeConfig from "../models/homeConfig.model.js";
 import { connectDB } from "../lib/db.js";
 import { uploadBufferToCloudinary } from "../lib/cloudinary.js";
@@ -97,10 +98,18 @@ export const deleteHomeBanner = async (req, res) => {
     await connectDB();
 
     const { bannerId } = req.params;
+    console.log(bannerId);
+    if (!mongoose.Types.ObjectId.isValid(bannerId)) {
+      return res.status(400).json({ message: "Invalid banner ID" });
+    }
 
     const updated = await HomeConfig.findOneAndUpdate(
       {},
-      { $pull: { banners: { _id: bannerId } } },
+      {
+        $pull: {
+          banners: { _id: new mongoose.Types.ObjectId(bannerId) }
+        }
+      },
       { new: true }
     );
 

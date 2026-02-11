@@ -77,7 +77,7 @@ export const signup = async (req, res) => {
 
 export const login = async (req, res) => {
   const { email, phone, password } = req.body || {};
-
+  console.log(email,password);
   if (!password || (!email && !phone)) {
     return res.status(400).json({ message: "Invalid credentials" });
   }
@@ -89,6 +89,7 @@ export const login = async (req, res) => {
   }).select("+password");
 
   if (!user || !await bcrypt.compare(password, user.password)) {
+    console.log("Invalid");
     return res.status(400).json({ message: "Invalid credentials" });
   }
 

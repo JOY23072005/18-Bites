@@ -12,6 +12,7 @@ export const getCategories = async (req, res) => {
       page = 1,
       limit = 10,
       search = "",
+      home = "false",
       status = "active" // active | inactive | all
     } = req.query;
 
@@ -25,6 +26,10 @@ export const getCategories = async (req, res) => {
     // Search filter
     if (search) {
       query.name = { $regex: search, $options: "i" };
+    }
+
+    if(home==="true"){
+      query.showHome = true;
     }
 
     const totalItems = await Category.countDocuments(query);
@@ -188,24 +193,48 @@ export const uploadCategoryImage = async (req, res) => {
   }
 };
 
-export const deleteCategoryImage = async (req,res) =>{
+export const deleteCategoryImage = async (req, res) => {
   try {
-
     await connectDB();
 
-    const id = req.params;
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid category ID" });
+    }
 
     const category = await Category.findById(id);
     if (!category) {
       return res.status(404).json({ message: "Category not found" });
     }
 
-    // Delete old image if exists
+    // 🔥 Try deleting from Cloudinary (if exists)
     if (category.image?.publicId) {
-      await cloudinary.uploader.destroy(category.image.publicId);
+      try {
+        const result = await cloudinary.uploader.destroy(
+          category.image.publicId
+        );
+
+        if (result.result !== "ok" && result.result !== "not found") {
+          console.warn("Cloudinary delete warning:", result);
+        }
+      } catch (cloudErr) {
+        console.warn("Cloudinary deletion failed:", cloudErr.message);
+        // Do NOT throw → continue
+      }
     }
+
+    // 🔥 Remove image from DB (always)
+    category.image = null;
+    await category.save();
+
+    return res.json({
+      success: true,
+      message: "Category image removed successfully",
+    });
+
   } catch (error) {
     console.error("deleteCategoryImage error:", error);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
-}
+};

@@ -2,36 +2,15 @@ import mongoose from "mongoose";
 
 const bannerSchema = new mongoose.Schema(
   {
-    desktopImageUrl: {
-      type: String,
-      required: true
-    },
-
-    mobileImageUrl: {
-      type: String,
-      required: true
-    },
-
-    redirectUrl: {
-      type: String,
-      default: ""
-    },
-
-    title: {
-      type: String
-    },
-
-    subtitle: {
-      type: String
-    },
-
-    isActive: {
-      type: Boolean,
-      default: true
-    }
-  },
-  { _id: false }
+    desktopImageUrl: { type: String, required: true },
+    mobileImageUrl: { type: String, required: true },
+    redirectUrl: { type: String, default: "" },
+    title: { type: String },
+    subtitle: { type: String },
+    isActive: { type: Boolean, default: true }
+  }
 );
+
 
 const homeConfigSchema = new mongoose.Schema(
   {

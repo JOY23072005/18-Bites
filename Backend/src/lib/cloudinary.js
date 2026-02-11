@@ -21,4 +21,5 @@ export const uploadBufferToCloudinary = (buffer, folder) => {
   });
 };
 
+
 export default cloudinary;

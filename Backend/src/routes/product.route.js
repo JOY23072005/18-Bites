@@ -12,8 +12,8 @@ import {
   uploadProductsCSV,
   getFeaturedProducts,
   getTrendingProducts,
-  setTodaysHotDeal,
-  getTodaysHotDeal
+  getCurrentHotDeal,
+  setHotDealForWeek
 } from "../controllers/product.controller.js";
 
 import { authMiddleware } from "../middlewares/auth.middleware.js";
@@ -40,11 +40,11 @@ ProdRoutes.put(
   "/:id/hot-deal",
   authMiddleware,
   adminMiddleware,
-  setTodaysHotDeal
+  setHotDealForWeek
 );
 
 // Public
-ProdRoutes.get("/hot-deal", getTodaysHotDeal);
+ProdRoutes.get("/hot-deal", getCurrentHotDeal);
 
 // GET /api/products
 ProdRoutes.get("/", getAllProducts);

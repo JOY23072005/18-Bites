@@ -23,34 +23,41 @@ export const Products = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    category: '',
+    SKU: "",
+    name: "",
+    description: "",
+    price: "",
+    stock: "",
+    category: "",
     isActive: true,
-    image: null,
+    isFeatured: false,
+    images: [],
+    existingImages: [],   // 👈 ADD
   });
+
+
 
   // Fetch products
   const fetchProducts = async (page = 1) => {
-    setLoading(true);
-    try {
-      const { data } = await api.get('/api/products', {
-        params: { page, limit: pagination.limit, search: searchTerm },
-      });
-      setProducts(data.data.products);
-      setPagination({
-        page: data.data.page,
-        limit: data.data.limit,
-        totalItems: data.data.totalItems,
-        totalPages: data.data.totalPages,
-      });
-    } catch (error) {
-      toast.error('Failed to fetch products');
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+  try {
+    const { data } = await api.get("/api/products", {
+      params: {
+        page,
+        limit: pagination.limit,
+        search: searchTerm,
+        status: "all",  // active | inactive | all
+      },
+    });
+    setProducts(data.data.products);
+    setPagination(data.data);
+  } catch (error) {
+    toast.error("Failed to fetch products");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // Fetch categories
   const fetchCategories = async () => {
@@ -69,30 +76,37 @@ export const Products = () => {
 
   // Handle image preview
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({
-          ...formData,
-          image: file,
-        });
-      };
-      reader.readAsDataURL(file);
-    }
+    const files = Array.from(e.target.files);
+
+    const previews = files.map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+
+    setFormData((prev) => ({
+      ...prev,
+      images: previews,
+    }));
   };
 
   // Handle edit
   const handleEdit = (product) => {
     setEditingProduct(product);
+
     setFormData({
+      SKU: product.SKU,
       name: product.name,
       description: product.description,
       price: product.price,
-      category: product.category._id,
+      stock: product.stock,
+      category: product.category?._id || "",
       isActive: product.isActive,
-      image: null,
+      isFeatured: product.isFeatured,
+      images: [],
+      existingImages: product.images || [],   // 👈 ADD THIS
     });
+
+
     setIsModalOpen(true);
   };
 
@@ -101,44 +115,69 @@ export const Products = () => {
     if (window.confirm('Are you sure you want to deactivate this product?')) {
       try {
         await api.delete(`/api/products/${id}`);
-        toast.success('Product deactivated successfully');
+        toast.success('Product deleted successfully');
         fetchProducts(pagination.page);
       } catch (error) {
-        toast.error('Failed to deactivate product');
+        toast.error('Failed to delete product');
       }
     }
   };
 
   // Handle save
   const handleSave = async () => {
-    try {
-      const submitData = new FormData();
-      submitData.append('name', formData.name);
-      submitData.append('description', formData.description);
-      submitData.append('price', formData.price);
-      submitData.append('category', formData.category);
-      submitData.append('isActive', formData.isActive);
-      if (formData.image) {
-        submitData.append('image', formData.image);
-      }
+  try {
+    const payload = {
+      SKU: formData.SKU,
+      name: formData.name,
+      description: formData.description,
+      price: formData.price,
+      stock: formData.stock,
+      category: formData.category,
+      isActive: formData.isActive,
+      isFeatured: formData.isFeatured,
+    };
 
-      if (editingProduct) {
-        await api.put(`/admin/products/${editingProduct._id}`, submitData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        toast.success('Product updated successfully');
-      } else {
-        await api.post('/admin/products', submitData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        toast.success('Product created successfully');
-      }
-      resetForm();
-      fetchProducts(pagination.page);
-    } catch (error) {
-      toast.error(editingProduct ? 'Failed to update product' : 'Failed to create product');
+    let response;
+
+    if (editingProduct) {
+      response = await api.put(
+        `/api/products/${editingProduct._id}`,
+        payload
+      );
+      toast.success("Product updated successfully");
+    } else {
+      response = await api.post("/api/products", payload);
+      toast.success("Product created successfully");
     }
-  };
+
+    const productId = editingProduct
+      ? editingProduct._id
+      : response.data.product._id;
+
+    // 🔥 Upload Images if selected
+    if (formData.images.length > 0) {
+      const imageForm = new FormData();
+      formData.images.forEach((img) =>
+        imageForm.append("images", img.file)
+      );
+
+      await api.post(
+        `/api/products/${productId}/images`,
+        imageForm,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+    }
+    
+    resetForm();
+    fetchProducts(1);
+  } catch (error) {
+    toast.error("Operation failed");
+  }
+};
 
   // Handle bulk upload
   const handleBulkUpload = async (e) => {
@@ -150,7 +189,7 @@ export const Products = () => {
 
     setUploading(true);
     try {
-      await api.post('/admin/products/bulk-upload', formDataBulk, {
+      await api.post('/api/products/bulk/upload-csv', formDataBulk, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       toast.success('Bulk upload completed successfully');
@@ -167,24 +206,98 @@ export const Products = () => {
     setIsModalOpen(false);
     setEditingProduct(null);
     setFormData({
-      name: '',
-      description: '',
-      price: '',
-      category: '',
-      status: 'active',
-      image: null,
-      imagePreview: '',
+      SKU: "",
+      name: "",
+      description: "",
+      price: "",
+      stock: "",
+      category: "",
+      isActive: true,
+      isFeatured: false,
+      images: [],
+      existingImages: [],
     });
   };
 
   const columns = [
-    { key: 'SKU', label: 'SKU'},
-    { key: 'name', label: 'Product Name' },
-    { key: 'price', label: 'Price' },
-    { key: 'category', label: 'Category' },
-    { key: 'isActive', label: 'Status' },
-    { key: 'actions', label: 'Actions' },
+  { key: "SKU", label: "SKU" },
+  { key: "name", label: "Product Name" },
+  { key: "price", label: "Price" },
+  { key: "stock", label: "Stock" },
+  { key: "category", label: "Category" },
+  { key: "isFeatured", label: "Featured" },
+  { key: "isActive", label: "Status" },
+  { key: "actions", label: "Actions" },
   ];
+
+  const handleSetHotDeal = async (id) => {
+    try {
+      const { data } = await api.put(`/api/products/${id}/hot-deal`);
+
+      if (data.success) {
+        toast.success("🔥 Product set as Hot Deal");
+        fetchProducts(pagination.page);
+      }
+    } catch (err) {
+      toast.error("Failed to set Hot Deal");
+    }
+  };
+
+  const handleDeleteImage = async (publicId) => {
+    try {
+      await api.delete(`/api/products/${editingProduct._id}/images`, {
+        data: { publicId },
+      });
+
+      setFormData((prev) => ({
+        ...prev,
+        existingImages: prev.existingImages.filter(
+          (img) => img.publicId !== publicId
+        ),
+      }));
+
+      toast.success("Image deleted");
+    } catch (err) {
+      toast.error("Failed to delete image");
+    }
+  };
+
+  const moveImage = async (fromIndex, toIndex) => {
+    const updated = [...formData.existingImages];
+    const [moved] = updated.splice(fromIndex, 1);
+    updated.splice(toIndex, 0, moved);
+
+    setFormData((prev) => ({
+      ...prev,
+      existingImages: updated,
+    }));
+
+    try {
+      await api.put(
+        `/api/products/${editingProduct._id}/images/reorder`,
+        {
+          order: updated.map((img) => img.publicId),
+        }
+      );
+
+      toast.success("Images reordered");
+    } catch (err) {
+      toast.error("Failed to reorder");
+    }
+  };
+
+  const moveNewImage = (fromIndex, toIndex) => {
+    const updated = [...formData.images];
+
+    const [moved] = updated.splice(fromIndex, 1);
+    updated.splice(toIndex, 0, moved);
+
+    setFormData((prev) => ({
+      ...prev,
+      images: updated,
+    }));
+  };
+
 
   return (
     <div className="p-6 space-y-6">
@@ -200,7 +313,6 @@ export const Products = () => {
           </Button>
         </div>
       </div>
-
       {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-3 text-gray-400" size={20} />
@@ -226,7 +338,16 @@ export const Products = () => {
             <td className="px-6 py-4 text-sm font-medium text-gray-900">{product.SKU}</td>
             <td className="px-6 py-4 text-sm font-medium text-gray-900">{product.name}</td>
             <td className="px-6 py-4 text-sm text-gray-600">₹{product.price}</td>
+            <td className="px-6 py-4 text-sm text-gray-600">{product.stock}</td>
             <td className="px-6 py-4 text-sm text-gray-600">{product.category?.name}</td>
+            <td className="px-6 py-4">
+              {product.isFeatured ? (
+                <span className="text-yellow-600 font-semibold">Yes</span>
+              ) : (
+                "No"
+              )}
+            </td>
+
             <td className="px-6 py-4 text-sm">
               <span
                 className={`px-3 py-1 text-xs font-semibold rounded-full ${
@@ -250,6 +371,14 @@ export const Products = () => {
                 className="text-red-600 hover:text-red-700 p-1"
               >
                 <Trash2 size={18} />
+              </button>
+            </td>
+            <td>
+              <button
+                onClick={() => handleSetHotDeal(product._id)}
+                className="text-orange-600 p-1"
+              >
+                🔥
               </button>
             </td>
           </tr>
@@ -280,6 +409,39 @@ export const Products = () => {
             placeholder="Enter product description"
             rows={3}
           />
+          <Input
+            label="SKU"
+            required
+            value={formData.SKU}
+            onChange={(e) =>
+              setFormData({ ...formData, SKU: e.target.value })
+            }
+          />
+
+          <Input
+            label="Stock"
+            type="number"
+            required
+            value={formData.stock}
+            onChange={(e) =>
+              setFormData({ ...formData, stock: e.target.value })
+            }
+          />
+
+          <Select
+            label="Featured"
+            value={formData.isFeatured}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                isFeatured: e.target.value === "true",
+              })
+            }
+            options={[
+              { value: "true", label: "Yes" },
+              { value: "false", label: "No" },
+            ]}
+          />
 
           <div className="grid grid-cols-2 gap-4">
             <Input
@@ -307,30 +469,114 @@ export const Products = () => {
             </label>
             <div className="flex gap-4">
               <FileInput
+                multiple
                 accept="image/*"
                 onChange={handleImageChange}
                 className="flex-1"
               />
-              {formData.imagePreview && (
-                <div className="w-20 h-20 rounded-lg overflow-hidden border border-gray-300">
-                  <img
-                    src={formData.imagePreview}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                  />
+              {/* New Selected Images Preview */}
+              {formData.images.length > 0 && (
+                <div className="grid grid-cols-3 gap-4 mt-4">
+                  {formData.images.map((img, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={img.preview}
+                        alt="preview"
+                        className="w-full h-24 object-cover rounded-lg border"
+                      />
+
+                      {/* Delete Button */}
+                      <button
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            images: prev.images.filter((_, i) => i !== index),
+                          }))
+                        }
+                        className="absolute top-1 right-1 bg-red-500 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100"
+                      >
+                        ✕
+                      </button>
+
+                      {/* Reorder Controls */}
+                      <div className="absolute bottom-1 left-1 flex gap-1 opacity-0 group-hover:opacity-100">
+                        {index > 0 && (
+                          <button
+                            onClick={() => moveNewImage(index, index - 1)}
+                            className="bg-black text-white text-xs px-2 py-1 rounded"
+                          >
+                            ↑
+                          </button>
+                        )}
+                        {index < formData.images.length - 1 && (
+                          <button
+                            onClick={() => moveNewImage(index, index + 1)}
+                            className="bg-black text-white text-xs px-2 py-1 rounded"
+                          >
+                            ↓
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {formData.existingImages?.length > 0 && (
+                <div className="grid grid-cols-3 gap-4 mt-4">
+                  {formData.existingImages.map((img, index) => (
+                    <div key={img.publicId} className="relative group">
+                      <img
+                        src={img.url}
+                        alt="product"
+                        className="w-full h-24 object-cover rounded-lg border"
+                      />
+
+                      {/* Delete Button */}
+                      <button
+                        onClick={() => handleDeleteImage(img.publicId)}
+                        className="absolute top-1 right-1 bg-red-500 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100"
+                      >
+                        ✕
+                      </button>
+
+                      {/* Reorder Controls */}
+                      <div className="absolute bottom-1 left-1 flex gap-1 opacity-0 group-hover:opacity-100">
+                        {index > 0 && (
+                          <button
+                            onClick={() => moveImage(index, index - 1)}
+                            className="bg-black text-white text-xs px-2 py-1 rounded"
+                          >
+                            ↑
+                          </button>
+                        )}
+                        {index < formData.existingImages.length - 1 && (
+                          <button
+                            onClick={() => moveImage(index, index + 1)}
+                            className="bg-black text-white text-xs px-2 py-1 rounded"
+                          >
+                            ↓
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
           </div>
-
+          
           <Select
             label="Status"
-            required
-            value={formData.status}
-            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+            value={formData.isActive ? "true" : "false"}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                isActive: e.target.value === "true",
+              })
+            }
             options={[
-              { value: 'active', label: 'Active' },
-              { value: 'inactive', label: 'Inactive' },
+              { value: "true", label: "Active" },
+              { value: "false", label: "Inactive" },
             ]}
           />
 

@@ -1,45 +1,54 @@
-import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search } from 'lucide-react';
-import DataTable from '../components/DataTable.jsx';
-import Button from '../components/Button.jsx';
-import Modal from '../components/Modal.jsx';
-import Input from '../components/Input.jsx';
-import api from '../lib/api.js';
-import toast from 'react-hot-toast';
+import { useState, useEffect } from "react";
+import { Plus, Edit2, Trash2, Search } from "lucide-react";
+import DataTable from "../components/DataTable.jsx";
+import Button from "../components/Button.jsx";
+import Modal from "../components/Modal.jsx";
+import Input, { FileInput } from "../components/Input.jsx";
+import api from "../lib/api.js";
+import toast from "react-hot-toast";
 
 export const Categories = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
     totalItems: 0,
     totalPages: 1,
   });
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
+
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
+    name: "",
+    slug: "",
+    description: "",
+    showHome: false,     // ✅ NEW
+    image: null,
+    preview: null,      // ✅ NEW
+    existingImage: null,
   });
 
-  // Fetch categories
+  // ================= FETCH =================
+
   const fetchCategories = async (page = 1) => {
     setLoading(true);
     try {
-      const { data } = await api.get('api/admin/categories', {
-        params: { page, limit: pagination.limit, search: searchTerm },
+      const { data } = await api.get("/api/categories", {
+        params: {
+          page,
+          limit: pagination.limit,
+          search: searchTerm,
+          status: "all",
+        },
       });
+
       setCategories(data.data.categories);
-      setPagination({
-        page: data.data.page,
-        limit: data.data.limit,
-        totalItems: data.data.totalItems,
-        totalPages: data.data.totalPages,
-      });
+      setPagination(data.data);
     } catch (error) {
-      toast.error('Failed to fetch categories');
+      toast.error("Failed to fetch categories");
     } finally {
       setLoading(false);
     }
@@ -49,78 +58,164 @@ export const Categories = () => {
     fetchCategories(1);
   }, [searchTerm]);
 
-  // Handle edit
+  // ================= EDIT =================
+
   const handleEdit = (category) => {
     setEditingCategory(category);
+
     setFormData({
       name: category.name,
-      description: category.description,
+      slug: category.slug || "",
+      description: category.description || "",
+      showHome: category.showHome || false,  // ✅ NEW
+      image: null,
+      preview: null,
+      existingImage: category.image || null,
     });
+
     setIsModalOpen(true);
   };
 
-  // Handle delete
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this category?')) {
-      try {
-        await api.delete(`/admin/categories/${id}`);
-        toast.success('Category deleted successfully');
-        fetchCategories(pagination.page);
-      } catch (error) {
-        toast.error('Failed to delete category');
-      }
-    }
-  };
+  // ================= DELETE =================
 
-  // Handle save
-  const handleSave = async () => {
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure?")) return;
+
     try {
-      if (editingCategory) {
-        await api.put(`/admin/categories/${editingCategory._id}`, formData);
-        toast.success('Category updated successfully');
-      } else {
-        await api.post('/admin/categories', formData);
-        toast.success('Category created successfully');
-      }
-      setIsModalOpen(false);
-      setEditingCategory(null);
-      setFormData({ name: '', description: '' });
+      await api.delete(`/api/categories/${id}`);
+      toast.success("Category deactivated");
       fetchCategories(pagination.page);
     } catch (error) {
-      toast.error(editingCategory ? 'Failed to update category' : 'Failed to create category');
+      toast.error("Failed to delete category");
     }
   };
 
+  // ================= SAVE =================
+
+  const handleSave = async () => {
+    try {
+      let response;
+
+      const payload = {
+        name: formData.name,
+        slug: formData.slug,
+        description: formData.description,
+        showHome: formData.showHome,  // ✅ SEND TO BACKEND
+      };
+
+      if (editingCategory) {
+        response = await api.put(
+          `/api/categories/${editingCategory._id}`,
+          payload
+        );
+        toast.success("Category updated");
+      } else {
+        response = await api.post("/api/categories", payload);
+        toast.success("Category created");
+      }
+
+      const categoryId = editingCategory
+        ? editingCategory._id
+        : response.data.category._id;
+
+      // Upload image
+      if (formData.image) {
+        const imgForm = new FormData();
+        imgForm.append("image", formData.image);
+
+        await api.post(
+          `/api/categories/${categoryId}/image`,
+          imgForm,
+          { headers: { "Content-Type": "multipart/form-data" } }
+        );
+      }
+
+      resetForm();
+      fetchCategories(1);
+
+    } catch (error) {
+      toast.error("Operation failed");
+    }
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      image: file,
+      preview: URL.createObjectURL(file),  // ✅ PREVIEW
+    }));
+  };
+
+  // ================= IMAGE DELETE =================
+
+  const handleDeleteImage = async () => {
+    if (!editingCategory) return;
+    if (!window.confirm("Remove this image?")) return;
+    try {
+      await api.delete(
+        `/api/categories/${editingCategory._id}/image`
+      );
+
+      setFormData((prev) => ({
+        ...prev,
+        existingImage: null,
+      }));
+
+      toast.success("Image deleted successfully");
+    } catch (error) {
+      toast.error("Failed to delete image");
+    }
+  };
+
+
+  const resetForm = () => {
+    setIsModalOpen(false);
+    setEditingCategory(null);
+    setFormData({
+      name: "",
+      slug: "",
+      description: "",
+      image: null,
+      existingImage: null,
+    });
+  };
+
+  // ================= TABLE =================
+
   const columns = [
-    { key: 'name', label: 'Category Name' },
-    { key: 'description', label: 'Description' },
-    { key: 'productCount', label: 'Products' },
-    { key: 'actions', label: 'Actions' },
+    { key: "name", label: "Category Name" },
+    { key: "slug", label: "Slug" },
+    { key: "description", label: "Description" },
+    { key: "status", label: "Status" },
+    { key: "actions", label: "Actions" },
   ];
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Categories Management</h1>
-        <Button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2">
-          <Plus size={20} /> Add Category
+      {/* HEADER */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Categories Management</h1>
+        <Button onClick={() => setIsModalOpen(true)}>
+          <Plus size={18} /> Add Category
         </Button>
       </div>
 
-      {/* Search */}
+      {/* SEARCH */}
       <div className="relative">
-        <Search className="absolute left-3 top-3 text-gray-400" size={20} />
+        <Search className="absolute left-3 top-3 text-gray-400" size={18} />
         <input
           type="text"
           placeholder="Search categories..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          className="w-full pl-10 pr-4 py-2 border rounded-lg"
         />
       </div>
 
-      {/* Categories Table */}
+      {/* TABLE */}
       <DataTable
         columns={columns}
         data={categories}
@@ -129,67 +224,136 @@ export const Categories = () => {
         onPageChange={(page) => fetchCategories(page)}
         renderRow={(category) => (
           <tr key={category._id} className="hover:bg-gray-50">
-            <td className="px-6 py-4 text-sm font-medium text-gray-900">{category.name}</td>
-            <td className="px-6 py-4 text-sm text-gray-600 truncate max-w-xs">
+            <td className="px-6 py-4">{category.name}</td>
+            <td className="px-6 py-4">{category.slug}</td>
+            <td className="px-6 py-4 truncate max-w-xs">
               {category.description}
             </td>
-            <td className="px-6 py-4 text-sm text-gray-600">{category.productCount || 0}</td>
-            <td className="px-6 py-4 text-sm flex gap-2">
+            <td className="px-6 py-4">
+              {category.isActive ? "Active" : "Inactive"}
+            </td>
+            <td className="px-6 py-4 flex gap-2">
               <button
                 onClick={() => handleEdit(category)}
-                className="text-primary-600 hover:text-primary-700 p-1"
+                className="text-blue-600"
               >
-                <Edit2 size={18} />
+                <Edit2 size={16} />
               </button>
               <button
                 onClick={() => handleDelete(category._id)}
-                className="text-red-600 hover:text-red-700 p-1"
+                className="text-red-600"
               >
-                <Trash2 size={18} />
+                <Trash2 size={16} />
               </button>
             </td>
           </tr>
         )}
       />
 
-      {/* Modal */}
+      {/* MODAL */}
       <Modal
         isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingCategory(null);
-          setFormData({ name: '', description: '' });
-        }}
-        title={editingCategory ? 'Edit Category' : 'Add New Category'}
+        onClose={resetForm}
+        title={editingCategory ? "Edit Category" : "Add Category"}
       >
         <div className="space-y-4">
+
           <Input
-            label="Category Name"
+            label="Name"
             required
             value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="Enter category name"
+            onChange={(e) =>
+              setFormData({ ...formData, name: e.target.value })
+            }
+          />
+
+          <Input
+            label="Slug"
+            value={formData.slug}
+            onChange={(e) =>
+              setFormData({ ...formData, slug: e.target.value })
+            }
           />
 
           <Input
             label="Description"
             value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            placeholder="Enter description"
+            onChange={(e) =>
+              setFormData({ ...formData, description: e.target.value })
+            }
           />
 
+          {/* ✅ showHome Toggle */}
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              checked={formData.showHome}
+              onChange={(e) =>
+                setFormData({ ...formData, showHome: e.target.checked })
+              }
+              className="w-4 h-4"
+            />
+            <label className="text-sm font-medium">
+              Show on Home Page
+            </label>
+          </div>
+
+          {/* IMAGE INPUT */}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            className="w-full border p-2 rounded"
+          />
+
+          {/* ✅ PREVIEW (New Image) */}
+          {formData.preview && (
+            <div className="relative w-32 h-32">
+              <img
+                src={formData.preview}
+                alt="preview"
+                className="w-full h-full object-cover rounded border"
+              />
+              <button
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    image: null,
+                    preview: null,
+                  }))
+                }
+                className="absolute top-1 right-1 bg-red-500 text-white text-xs px-2 py-1 rounded"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* ✅ EXISTING IMAGE */}
+          {!formData.preview && formData.existingImage && (
+            <div className="relative w-32 h-32 group">
+              <img
+                src={formData.existingImage.url}
+                alt="category"
+                className="w-full h-full object-cover rounded border"
+              />
+
+              {/* Delete Button */}
+              <button
+                onClick={handleDeleteImage}
+                className="absolute top-1 right-1 bg-red-500 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+
           <div className="flex gap-3 pt-4">
-            <Button variant="primary" onClick={handleSave} className="flex-1">
-              {editingCategory ? 'Update' : 'Create'}
+            <Button onClick={handleSave} className="flex-1">
+              {editingCategory ? "Update" : "Create"}
             </Button>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setIsModalOpen(false);
-                setEditingCategory(null);
-              }}
-              className="flex-1"
-            >
+            <Button variant="secondary" onClick={resetForm} className="flex-1">
               Cancel
             </Button>
           </div>

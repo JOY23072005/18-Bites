@@ -22,6 +22,7 @@
   --color-secondary-700: #374151;
 
   --spacing-sidebar: 280px;
+  --animate-loading-bar: loadingBar 1.2s ease-in-out infinite;
 }
 
 #root{
@@ -64,6 +65,18 @@ input[type='date']::-webkit-calendar-picker-indicator {
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-gray-500;
 }
+
+@keyframes loadingBar {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}   
 
 /* Animations */
 @keyframes fadeIn {

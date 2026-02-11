@@ -37,6 +37,7 @@ export const uploadSingleImage = (req, res, next) => {
 export const uploadImages = (req, res, next) => {
   upload.array("images",5)(req, res, (err) => {
     if (err) {
+      console.log("Multer error:", err);
       return res.status(400).json({
         message: err.message || "File upload error",
       });

@@ -35,8 +35,8 @@ app.use("/api/cart", CartRoutes);
 app.use("/api/payment", PayRoutes);
 app.use("/api/home",HomeRoutes);
 app.use("/api/admin", AdminRoutes);
-// app.listen('5001',()=>{
-//     console.log("server running");
-// })
+app.listen('5001',()=>{
+    console.log("server running");
+})
 
 export default app;

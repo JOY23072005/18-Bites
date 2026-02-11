@@ -40,9 +40,9 @@ const productSchema = new mongoose.Schema(
 
     lastSoldAt: Date,
 
-    hotDealDate: {
-      type: Date,
-      index: true
+    hotDeal: {
+      startDate: Date,
+      endDate: Date
     },
 
     isActive: { type: Boolean, default: true }
@@ -51,6 +51,7 @@ const productSchema = new mongoose.Schema(
 );
 
 // ✅ Indexes
+productSchema.index({ "hotDeal.startDate": 1, "hotDeal.endDate": 1 });
 productSchema.index({ name: 1, isActive: 1 });
 productSchema.index({ category: 1, isActive: 1 });
 productSchema.index({ createdAt: -1 });
