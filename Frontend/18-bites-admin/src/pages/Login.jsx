@@ -29,12 +29,15 @@ export const Login = () => {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="w-12 h-12 bg-secondary-400 rounded-lg flex items-center justify-center font-bold text-xl text-gray-900">
-              18
-            </div>
-            <div className="text-left">
-              <h1 className="text-2xl font-bold text-white">Bites</h1>
-              <p className="text-primary-200 text-sm">Admin Panel</p>
+            <div>
+              <div className="w-25 h-17 overflow-hidden">
+                <img
+                  src="https://res.cloudinary.com/dgwx34lqc/image/upload/v1770875314/LOGO_jfhzkk.png"
+                  className="w-full h-full object-cover object-top scale-150"
+                  alt="Logo"
+                />
+              </div>
+              <p className="ml-7 text-xs text-primary-200">Admin Panel</p>
             </div>
           </div>
         </div>
@@ -50,7 +53,7 @@ export const Login = () => {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@18bites.com"
+              placeholder="admin@vitija.com"
             />
 
             <Input

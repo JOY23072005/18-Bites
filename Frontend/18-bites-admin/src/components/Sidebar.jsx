@@ -53,19 +53,22 @@ export const Sidebar = () => {
 
       {/* Sidebar */}
       <div
-        className={`fixed left-0 top-0 h-screen bg-gradient-to-b from-primary-700 to-primary-900 text-white w-64 transform transition-transform lg:translate-x-0 z-30 ${
+        className={`fixed max-md:w-full left-0 top-0 h-screen bg-gradient-to-b from-primary-700 to-primary-900 text-white w-64 transform transition-transform lg:translate-x-0 z-30 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Logo */}
         <div className="p-6 border-b border-primary-600">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-secondary-400 rounded-lg flex items-center justify-center font-bold">
-              18
-            </div>
+          <div className="flex items-center justify-center">
             <div>
-              <h1 className="font-bold text-lg">Bites</h1>
-              <p className="text-xs text-primary-200">Admin Panel</p>
+              <div className="w-25 h-17 overflow-hidden">
+                <img
+                  src="https://res.cloudinary.com/dgwx34lqc/image/upload/v1770875314/LOGO_jfhzkk.png"
+                  className="w-full h-full object-cover object-top scale-150"
+                  alt="Logo"
+                />
+              </div>
+              <p className="ml-7 text-xs text-primary-200">Admin Panel</p>
             </div>
           </div>
         </div>
