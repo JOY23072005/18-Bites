@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Button from './Button.jsx';
+import { useEffect } from 'react';
 
 export const DataTable = ({
   columns,
@@ -9,6 +10,9 @@ export const DataTable = ({
   onPageChange,
   renderRow,
 }) => {
+  useEffect(()=>{
+    console.log(data);
+  },[])
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
       {/* Table */}

@@ -109,7 +109,7 @@ export const updateOrderStatus = async (req, res) => {
 
     const order = await Order.findByIdAndUpdate(
       req.params.id,
-      { status },
+      { orderStatus: status },
       { new: true }
     );
 

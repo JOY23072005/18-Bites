@@ -35,8 +35,7 @@ export const Orders = () => {
           status: statusFilter,
         },
       });
-
-      setOrders(data.data.orders);
+      setOrders(data.data.order);
       setPagination({
         page: data.data.page,
         limit: data.data.limit,
@@ -67,12 +66,21 @@ export const Orders = () => {
 
     setUpdatingStatus(true);
     try {
-      await api.patch(`api/admin/orders/${selectedOrder._id}`, { status: newStatus });
-      toast.success(`Order status updated to ${newStatus}`);
-      setSelectedOrder({ ...selectedOrder, status: newStatus });
+      await api.patch(`/api/admin/orders/${selectedOrder._id}`, {
+        status: newStatus
+      });
+
+      toast.success("Order updated");
+
+      setSelectedOrder({
+        ...selectedOrder,
+        orderStatus: newStatus
+      });
+
       fetchOrders(pagination.page);
+
     } catch (error) {
-      toast.error('Failed to update order status');
+      toast.error("Failed to update order status");
     } finally {
       setUpdatingStatus(false);
     }
@@ -81,13 +89,14 @@ export const Orders = () => {
   const getStatusColor = (status) => {
     const colors = {
       pending: 'bg-yellow-100 text-yellow-600',
-      processing: 'bg-blue-100 text-blue-600',
+      confirmed: 'bg-blue-100 text-blue-600',
       shipped: 'bg-purple-100 text-purple-600',
       delivered: 'bg-green-100 text-green-600',
       cancelled: 'bg-red-100 text-red-600',
     };
     return colors[status] || 'bg-gray-100 text-gray-600';
   };
+
 
   const columns = [
     { key: 'orderId', label: 'Order ID' },
@@ -139,27 +148,34 @@ export const Orders = () => {
         onPageChange={(page) => fetchOrders(page)}
         renderRow={(order) => (
           <tr key={order._id} className="hover:bg-gray-50">
+
             <td className="px-6 py-4 text-sm font-mono font-medium text-gray-900">
-              #{order?.orderId}
+              #{order.orderId}
             </td>
+
             <td className="px-6 py-4 text-sm text-gray-600">
               <div>
-                <p className="font-medium">{order.customer?.name}</p>
-                <p className="text-xs text-gray-500">{order.customer?.email}</p>
+                <p className="font-medium">{order.user?.name}</p>
+                <p className="text-xs text-gray-500">{order.user?.email}</p>
               </div>
             </td>
+
             <td className="px-6 py-4 text-sm font-semibold text-gray-900">
-              {/* ₹{order.totalAmount?.toFixed(2)} */}
-              {typeof(order.totalAmount)}
+              ₹{order.totalAmount?.toFixed(2)}
             </td>
+
             <td className="px-6 py-4 text-sm">
-              <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
-                {order?.orderStatus}
+              <span
+                className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.orderStatus)}`}
+              >
+                {order.orderStatus}
               </span>
             </td>
+
             <td className="px-6 py-4 text-sm text-gray-600">
               {formatDistanceToNow(new Date(order.createdAt), { addSuffix: true })}
             </td>
+
             <td className="px-6 py-4 text-sm">
               <button
                 onClick={() => handleViewOrder(order)}
@@ -211,8 +227,10 @@ export const Orders = () => {
               <div className="space-y-2">
                 {selectedOrder.items?.map((item, idx) => (
                   <div key={idx} className="flex justify-between text-sm bg-gray-50 p-2 rounded">
-                    <span>{item.productName} x {item.quantity}</span>
-                    <span className="font-medium">₹{(item.price * item.quantity).toFixed(2)}</span>
+                    <span>{item.name} x {item.quantity}</span>
+                    <span className="font-medium">
+                      ₹{(item.price * item.quantity).toFixed(2)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -222,14 +240,14 @@ export const Orders = () => {
             <div className="border-t pt-4 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span>Subtotal:</span>
-                <span>₹{(selectedOrder.totalAmount - (selectedOrder.tax || 0)).toFixed(2)}</span>
+                <span>₹{selectedOrder.subTotal?.toFixed(2)}</span>
               </div>
-              {selectedOrder.tax && (
-                <div className="flex justify-between">
-                  <span>Tax:</span>
-                  <span>₹{selectedOrder.tax.toFixed(2)}</span>
-                </div>
-              )}
+
+              <div className="flex justify-between">
+                <span>Discount:</span>
+                <span>₹{selectedOrder.discount?.toFixed(2)}</span>
+              </div>
+
               <div className="flex justify-between font-bold text-base">
                 <span>Total:</span>
                 <span>₹{selectedOrder.totalAmount?.toFixed(2)}</span>
@@ -241,7 +259,7 @@ export const Orders = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">Update Status</label>
               <div className="flex gap-2">
                 <Select
-                  value={selectedOrder.status}
+                  value={selectedOrder.orderStatus}
                   onChange={(e) => handleStatusUpdate(e.target.value)}
                   disabled={updatingStatus}
                   options={[
