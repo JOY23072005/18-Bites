@@ -3,6 +3,7 @@ import { Trash2, Search, Star, MessageSquare } from 'lucide-react';
 import DataTable from '../components/DataTable.jsx';
 import Button from '../components/Button.jsx';
 import Modal from '../components/Modal.jsx';
+import Input from '../components/Input.jsx';
 import api from '../lib/api.js';
 import toast from 'react-hot-toast';
 import { formatDistanceToNow } from 'date-fns';
@@ -20,6 +21,15 @@ export const Reviews = () => {
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedReview, setSelectedReview] = useState(null);
+
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const [newReview, setNewReview] = useState({
+    sku: "",
+    rating: 5,
+    title: "",
+    comment: ""
+  });
 
   // Fetch reviews
   const fetchReviews = async (page = 1) => {
@@ -58,6 +68,25 @@ export const Reviews = () => {
     setIsModalOpen(true);
   };
 
+  const handleCreateReview = async () => {
+    try {
+      await api.post("api/admin/reviews", newReview);
+
+      toast.success("Review created successfully");
+      setIsCreateModalOpen(false);
+      fetchReviews(1);
+      setNewReview({
+        sku: "",
+        rating: 5,
+        title: "",
+        comment: ""
+      })
+    } catch (err) {
+      toast.error("Failed to create review");
+    }
+  };
+
+
   // Handle delete review
   const handleDeleteReview = async (id) => {
     if (window.confirm('Are you sure you want to delete this review?')) {
@@ -87,6 +116,7 @@ export const Reviews = () => {
   };
 
   const columns = [
+    { key: 'SKU', label: 'SKU' },
     { key: 'product', label: 'Product' },
     { key: 'customer', label: 'Customer' },
     { key: 'rating', label: 'Rating' },
@@ -97,7 +127,15 @@ export const Reviews = () => {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <h1 className="text-3xl font-bold text-gray-900">Reviews Management</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-gray-900">
+          Reviews Management
+        </h1>
+
+        <Button onClick={() => setIsCreateModalOpen("create")}>
+          Create Fake Review
+        </Button>
+      </div>
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -136,12 +174,15 @@ export const Reviews = () => {
         renderRow={(review) => (
           <tr key={review._id} className="hover:bg-gray-50">
             <td className="px-6 py-4 text-sm font-medium text-gray-900">
+              {review.product?.SKU}
+            </td>
+            <td className="px-6 py-4 text-sm font-medium text-gray-900">
               {review.product?.name}
             </td>
             <td className="px-6 py-4 text-sm">
               <div>
-                <p className="font-medium text-gray-900">{review.customer?.name}</p>
-                <p className="text-xs text-gray-500">{review.customer?.email}</p>
+                <p className="font-medium text-gray-900">{review.user?.name}</p>
+                <p className="text-xs text-gray-500">{review.user?.email}</p>
               </div>
             </td>
             <td className="px-6 py-4 text-sm">
@@ -193,8 +234,8 @@ export const Reviews = () => {
             <div>
               <h4 className="font-semibold text-gray-900 mb-2">Customer Information</h4>
               <div className="bg-gray-50 rounded p-3 space-y-1 text-sm">
-                <p><span className="font-medium">Name:</span> {selectedReview.customer?.name}</p>
-                <p><span className="font-medium">Email:</span> {selectedReview.customer?.email}</p>
+                <p><span className="font-medium">Name:</span> {selectedReview.user?.name}</p>
+                <p><span className="font-medium">Email:</span> {selectedReview.user?.email}</p>
               </div>
             </div>
 
@@ -250,6 +291,55 @@ export const Reviews = () => {
             </Button>
           </div>
         )}
+      </Modal>
+      <Modal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        title="Create Fake Review"
+      >
+        <div className="space-y-4">
+
+          <Input
+            label="Product SKU"
+            value={newReview.sku}
+            onChange={(e) =>
+              setNewReview({ ...newReview, sku: e.target.value })
+            }
+          />
+
+          <Input
+            label="Rating (1-5)"
+            type="number"
+            min="1"
+            max="5"
+            value={newReview.rating}
+            onChange={(e) =>
+              setNewReview({ ...newReview, rating: e.target.value })
+            }
+          />
+
+          <Input
+            label="Title"
+            value={newReview.title}
+            onChange={(e) =>
+              setNewReview({ ...newReview, title: e.target.value })
+            }
+          />
+
+          <textarea
+            className="w-full border rounded p-2"
+            placeholder="Review comment"
+            value={newReview.comment}
+            onChange={(e) =>
+              setNewReview({ ...newReview, comment: e.target.value })
+            }
+          />
+
+          <Button onClick={handleCreateReview} className="w-full">
+            Create Review
+          </Button>
+
+        </div>
       </Modal>
     </div>
   );

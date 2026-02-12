@@ -7,7 +7,9 @@ import {
   getAdminUsers,
   createAdminUser,
   updateAdminUser,
-  deleteAdminUser
+  deleteAdminUser,
+  createAdminReview,
+  deleteAdminReview
 } from "../controllers/admin.controller.js";
 
 import {authMiddleware} from "../middlewares/auth.middleware.js";
@@ -26,6 +28,8 @@ AdminRoutes.patch("/orders/:id", updateOrderStatus);
 
 /* Reviews */
 AdminRoutes.get("/reviews", getAdminReviews);
+AdminRoutes.post("/reviews", createAdminReview);      // ✅ create fake review
+AdminRoutes.delete("/reviews/:id", deleteAdminReview); 
 
 /* Users */
 AdminRoutes.get("/users", getAdminUsers);

@@ -163,7 +163,7 @@ export const getAdminReviews = async (req, res) => {
 
     const reviews = await Review.find(query)
       .populate("user", "name email")
-      .populate("product", "name")
+      .populate("product", "name SKU")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(Number(limit));
@@ -180,6 +180,68 @@ export const getAdminReviews = async (req, res) => {
     });
   } catch (err) {
     console.error("getAdminReviews:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const deleteAdminReview = async (req, res) => {
+  try {
+    await connectDB();
+
+    const { id } = req.params;
+
+    const review = await Review.findByIdAndDelete(id);
+
+    if (!review) {
+      return res.status(404).json({ message: "Review not found" });
+    }
+
+    res.json({
+      success: true,
+      message: "Review deleted successfully"
+    });
+
+  } catch (err) {
+    console.error("deleteAdminReview:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const createAdminReview = async (req, res) => {
+  try {
+    await connectDB();
+
+    const { sku, rating, title = "", comment = "" } = req.body;
+
+    if (!sku || !rating) {
+      return res.status(400).json({ message: "SKU and rating required" });
+    }
+
+    // 🔎 Find product by SKU
+    const product = await Product.findOne({ SKU: sku });
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    // 👤 Get logged-in admin user from token
+    const userId = req.userId; // comes from authMiddleware
+
+    const review = await Review.create({
+      product: product._id,
+      user: userId,
+      rating: Number(rating),
+      title,
+      comment,
+    });
+
+    res.status(201).json({
+      success: true,
+      review,
+    });
+
+  } catch (err) {
+    console.error("createAdminReview:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
