@@ -193,6 +193,38 @@ export const applyCoupon = async (req, res) => {
   }
 };
 
+export const updateCouponStatus = async (req, res) => {
+  try {
+    await connectDB();
+
+    const { id } = req.params;
+    const { isActive } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid coupon ID" });
+    }
+
+    const coupon = await Coupon.findByIdAndUpdate(
+      id,
+      { isActive },
+      { new: true }
+    );
+
+    if (!coupon) {
+      return res.status(404).json({ message: "Coupon not found" });
+    }
+
+    res.json({
+      success: true,
+      coupon
+    });
+
+  } catch (err) {
+    console.error("updateCouponStatus:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 export const deleteCoupon = async (req, res) => {
   try {
     await connectDB();
@@ -203,11 +235,7 @@ export const deleteCoupon = async (req, res) => {
       return res.status(400).json({ message: "Invalid coupon ID" });
     }
 
-    const coupon = await Coupon.findByIdAndUpdate(
-      id,
-      { isActive: false },
-      { new: true }
-    );
+    const coupon = await Coupon.findByIdAndDelete(id);
 
     if (!coupon) {
       return res.status(404).json({ message: "Coupon not found" });
@@ -215,7 +243,7 @@ export const deleteCoupon = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Coupon deactivated successfully"
+      message: "Coupon deleted permanently"
     });
 
   } catch (err) {

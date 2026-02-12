@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search, Copy, Check } from 'lucide-react';
+import { Plus, Trash2, Search, Copy, Check } from 'lucide-react';
 import DataTable from '../components/DataTable.jsx';
 import Button from '../components/Button.jsx';
 import Modal from '../components/Modal.jsx';
@@ -12,6 +12,7 @@ export const Coupons = () => {
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState("all");
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -19,8 +20,8 @@ export const Coupons = () => {
     totalPages: 1,
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCoupon, setEditingCoupon] = useState(null);
   const [copiedCode, setCopiedCode] = useState(null);
+
   const [formData, setFormData] = useState({
     code: '',
     description: '',
@@ -31,16 +32,21 @@ export const Coupons = () => {
     validFrom: '',
     validUntil: '',
     maxUses: '',
-    usedCount: 0,
     isActive: true,
   });
 
-  // Fetch coupons
+  /* ================= FETCH ================= */
+
   const fetchCoupons = async (page = 1) => {
     setLoading(true);
     try {
-      const { data } = await api.get('api/admin/coupons', {
-        params: { page, limit: pagination.limit, search: searchTerm },
+      const { data } = await api.get('/api/coupons', {
+        params: {
+          page,
+          limit: pagination.limit,
+          search: searchTerm,
+          status: statusFilter,
+        },
       });
 
       setCoupons(data.data.coupons);
@@ -59,74 +65,69 @@ export const Coupons = () => {
 
   useEffect(() => {
     fetchCoupons(1);
-  }, [searchTerm]);
+  }, [searchTerm, statusFilter]);
 
-  // Handle edit
-  const handleEdit = (coupon) => {
-    setEditingCoupon(coupon);
-    setFormData({
-      code: coupon.code,
-      description: coupon.description,
-      discountType: coupon.discountType,
-      discountValue: coupon.discountValue,
-      minOrderValue: coupon.minOrderValue || '',
-      maxDiscount: coupon.maxDiscount || '',
-      validFrom: coupon.validFrom?.split('T')[0] || '',
-      validUntil: coupon.validUntil?.split('T')[0] || '',
-      maxUses: coupon.maxUses || '',
-      usedCount: coupon.usedCount || 0,
-      isActive: coupon.isActive,
-    });
-    setIsModalOpen(true);
-  };
+  const handleStatusToggle = async (coupon) => {
+    try {
+      await api.patch(`/api/coupons/${coupon._id}/status`, {
+        isActive: !coupon.isActive
+      });
 
-  // Handle delete
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this coupon?')) {
-      try {
-        await api.delete(`/admin/coupons/${id}`);
-        toast.success('Coupon deleted successfully');
-        fetchCoupons(pagination.page);
-      } catch (error) {
-        toast.error('Failed to delete coupon');
-      }
+      toast.success(`Coupon ${!coupon.isActive ? "activated" : "deactivated"}`);
+      fetchCoupons(pagination.page);
+
+    } catch (err) {
+      toast.error("Failed to update status");
     }
   };
 
-  // Handle save
+  /* ================= DELETE ================= */
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to deactivate this coupon?')) return;
+
+    try {
+      await api.delete(`/api/coupons/${id}`);
+      toast.success('Coupon deactivated successfully');
+      fetchCoupons(pagination.page);
+    } catch (error) {
+      toast.error('Failed to delete coupon');
+    }
+  };
+
+  /* ================= SAVE ================= */
+
   const handleSave = async () => {
     try {
       const submitData = {
         ...formData,
+        code: formData.code.toUpperCase(),
         discountValue: parseFloat(formData.discountValue),
         minOrderValue: formData.minOrderValue ? parseFloat(formData.minOrderValue) : 0,
         maxDiscount: formData.maxDiscount ? parseFloat(formData.maxDiscount) : null,
         maxUses: formData.maxUses ? parseInt(formData.maxUses) : null,
       };
 
-      if (editingCoupon) {
-        await api.put(`/admin/coupons/${editingCoupon._id}`, submitData);
-        toast.success('Coupon updated successfully');
-      } else {
-        await api.post('/admin/coupons', submitData);
-        toast.success('Coupon created successfully');
-      }
+      await api.post('/api/coupons', submitData);
 
+      toast.success('Coupon created successfully');
       setIsModalOpen(false);
-      setEditingCoupon(null);
       resetForm();
-      fetchCoupons(pagination.page);
+      fetchCoupons(1);
     } catch (error) {
-      toast.error(editingCoupon ? 'Failed to update coupon' : 'Failed to create coupon');
+      toast.error('Failed to create coupon');
     }
   };
 
-  // Handle copy code
+  /* ================= COPY ================= */
+
   const handleCopyCode = (code) => {
     navigator.clipboard.writeText(code);
     setCopiedCode(code);
     setTimeout(() => setCopiedCode(null), 2000);
   };
+
+  /* ================= RESET ================= */
 
   const resetForm = () => {
     setFormData({
@@ -139,10 +140,11 @@ export const Coupons = () => {
       validFrom: '',
       validUntil: '',
       maxUses: '',
-      usedCount: 0,
       isActive: true,
     });
   };
+
+  /* ================= TABLE ================= */
 
   const columns = [
     { key: 'code', label: 'Coupon Code' },
@@ -163,19 +165,32 @@ export const Coupons = () => {
         </Button>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-3 text-gray-400" size={20} />
-        <input
-          type="text"
-          placeholder="Search coupons..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+      {/* Filters */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-3 text-gray-400" size={20} />
+          <input
+            type="text"
+            placeholder="Search coupons..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          />
+        </div>
+
+        <Select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          options={[
+            { value: 'all', label: 'All Coupons' },
+            { value: 'active', label: 'Active' },
+            { value: 'expired', label: 'Expired' },
+            { value: 'upcoming', label: 'Upcoming' },
+          ]}
         />
       </div>
 
-      {/* Coupons Table */}
+      {/* Table */}
       <DataTable
         columns={columns}
         data={coupons}
@@ -197,14 +212,18 @@ export const Coupons = () => {
                 )}
               </button>
             </td>
+
             <td className="px-6 py-4 text-sm">
               <span className="font-semibold">
-                {coupon.discountType === 'percentage' ? '%' : '₹'}{coupon.discountValue}
+                {coupon.discountType === 'percentage'
+                  ? `${coupon.discountValue}%`
+                  : `₹${coupon.discountValue}`}
               </span>
               {coupon.maxDiscount && (
                 <p className="text-xs text-gray-500">Max: ₹{coupon.maxDiscount}</p>
               )}
             </td>
+
             <td className="px-6 py-4 text-sm">
               <div>
                 <p className="font-medium">{coupon.usedCount || 0} used</p>
@@ -213,6 +232,7 @@ export const Coupons = () => {
                 </p>
               </div>
             </td>
+
             <td className="px-6 py-4 text-sm">
               {coupon.validUntil ? (
                 <div>
@@ -225,24 +245,24 @@ export const Coupons = () => {
                 'No expiry'
               )}
             </td>
+
             <td className="px-6 py-4 text-sm">
-              <span
-                className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                  coupon.isActive
-                    ? 'text-green-600 bg-green-100'
-                    : 'text-red-600 bg-red-100'
-                }`}
-              >
-                {coupon.isActive ? 'Active' : 'Inactive'}
-              </span>
+              <label className="inline-flex items-center cursor-pointer relative">
+                <input
+                  type="checkbox"
+                  checked={coupon.isActive}
+                  onChange={() => handleStatusToggle(coupon)}
+                  className="sr-only peer"
+                />
+
+                {/* Track */}
+                <div className="w-11 h-6 bg-gray-200 rounded-full peer-checked:bg-green-500 transition-colors duration-300"></div>
+
+                {/* Ball */}
+                <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform duration-300 peer-checked:translate-x-5"></div>
+              </label>
             </td>
             <td className="px-6 py-4 text-sm flex gap-2">
-              <button
-                onClick={() => handleEdit(coupon)}
-                className="text-primary-600 hover:text-primary-700 p-1"
-              >
-                <Edit2 size={18} />
-              </button>
               <button
                 onClick={() => handleDelete(coupon._id)}
                 className="text-red-600 hover:text-red-700 p-1"
@@ -259,10 +279,9 @@ export const Coupons = () => {
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
-          setEditingCoupon(null);
           resetForm();
         }}
-        title={editingCoupon ? 'Edit Coupon' : 'Create New Coupon'}
+        title="Create New Coupon"
         size="lg"
       >
         <div className="space-y-4 max-h-96 overflow-y-auto">
@@ -270,15 +289,18 @@ export const Coupons = () => {
             label="Coupon Code"
             required
             value={formData.code}
-            onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+            onChange={(e) =>
+              setFormData({ ...formData, code: e.target.value.toUpperCase() })
+            }
             placeholder="e.g., SUMMER20"
-            disabled={editingCoupon}
           />
 
           <Textarea
             label="Description"
             value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, description: e.target.value })
+            }
             placeholder="Enter coupon description"
             rows={2}
           />
@@ -288,10 +310,12 @@ export const Coupons = () => {
               label="Discount Type"
               required
               value={formData.discountType}
-              onChange={(e) => setFormData({ ...formData, discountType: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, discountType: e.target.value })
+              }
               options={[
                 { value: 'percentage', label: 'Percentage (%)' },
-                { value: 'fixed', label: 'Fixed Amount (₹)' },
+                { value: 'flat', label: 'Flat Amount (₹)' },
               ]}
             />
 
@@ -300,7 +324,9 @@ export const Coupons = () => {
               type="number"
               required
               value={formData.discountValue}
-              onChange={(e) => setFormData({ ...formData, discountValue: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, discountValue: e.target.value })
+              }
               placeholder="0"
             />
           </div>
@@ -309,7 +335,9 @@ export const Coupons = () => {
             label="Minimum Order Value (₹)"
             type="number"
             value={formData.minOrderValue}
-            onChange={(e) => setFormData({ ...formData, minOrderValue: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, minOrderValue: e.target.value })
+            }
             placeholder="0"
           />
 
@@ -317,7 +345,9 @@ export const Coupons = () => {
             label="Maximum Discount (₹)"
             type="number"
             value={formData.maxDiscount}
-            onChange={(e) => setFormData({ ...formData, maxDiscount: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, maxDiscount: e.target.value })
+            }
             placeholder="Optional"
           />
 
@@ -326,14 +356,18 @@ export const Coupons = () => {
               label="Valid From"
               type="date"
               value={formData.validFrom}
-              onChange={(e) => setFormData({ ...formData, validFrom: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, validFrom: e.target.value })
+              }
             />
 
             <Input
               label="Valid Until"
               type="date"
               value={formData.validUntil}
-              onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, validUntil: e.target.value })
+              }
             />
           </div>
 
@@ -341,32 +375,34 @@ export const Coupons = () => {
             label="Maximum Uses"
             type="number"
             value={formData.maxUses}
-            onChange={(e) => setFormData({ ...formData, maxUses: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, maxUses: e.target.value })
+            }
             placeholder="Leave blank for unlimited"
           />
 
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
-              id="isActive"
               checked={formData.isActive}
-              onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+              onChange={(e) =>
+                setFormData({ ...formData, isActive: e.target.checked })
+              }
               className="rounded"
             />
-            <label htmlFor="isActive" className="text-sm font-medium text-gray-700">
+            <label className="text-sm font-medium text-gray-700">
               Active
             </label>
           </div>
 
           <div className="flex gap-3 pt-4">
             <Button variant="primary" onClick={handleSave} className="flex-1">
-              {editingCoupon ? 'Update' : 'Create'}
+              Create
             </Button>
             <Button
               variant="secondary"
               onClick={() => {
                 setIsModalOpen(false);
-                setEditingCoupon(null);
                 resetForm();
               }}
               className="flex-1"
