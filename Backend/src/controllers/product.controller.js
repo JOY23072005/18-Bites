@@ -44,10 +44,21 @@ export const getAllProducts = async (req, res) => {
       query.name = { $regex: search, $options: "i" };
     }
 
-    // Category filter
-    if (category && mongoose.Types.ObjectId.isValid(category)) {
-      query.category = category;
+    // ✅ Category filter (single or multiple)
+    if (category) {
+      const categories = Array.isArray(category)
+        ? category
+        : [category];
+
+      const validCategories = categories.filter(id =>
+        mongoose.Types.ObjectId.isValid(id)
+      );
+
+      if (validCategories.length > 0) {
+        query.category = { $in: validCategories };
+      }
     }
+
 
     // SKU filter
     if (sku) {
