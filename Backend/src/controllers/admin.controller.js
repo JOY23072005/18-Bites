@@ -64,9 +64,30 @@ export const getAdminOrders = async (req, res) => {
     const { page = 1, limit = 10, search = "", status } = req.query;
 
     const query = {};
-    if (status) query.orderStatus = status;
+
+    // ✅ Filter by order status
+    if (status) {
+      query.orderStatus = status;
+    }
+
+    // ✅ Search by orderId OR customer name/email
     if (search && search.trim() !== "") {
-      query.orderId = { $regex: search.trim(), $options: "i" };
+      const trimmedSearch = search.trim();
+
+      // Find matching users
+      const users = await User.find({
+        $or: [
+          { name: { $regex: trimmedSearch, $options: "i" } },
+          { email: { $regex: trimmedSearch, $options: "i" } }
+        ]
+      }).select("_id");
+
+      const userIds = users.map(u => u._id);
+
+      query.$or = [
+        { orderId: { $regex: trimmedSearch, $options: "i" } },
+        { user: { $in: userIds } }
+      ];
     }
 
     const totalItems = await Order.countDocuments(query);
@@ -84,17 +105,18 @@ export const getAdminOrders = async (req, res) => {
       subTotal: Number(order.subTotal?.toString()),
       discount: Number(order.discount?.toString()),
     }));
-    
+
     res.json({
       success: true,
       data: {
-        order:formattedOrders,
+        orders: formattedOrders, // ✅ better naming
         page: Number(page),
         limit: Number(limit),
         totalItems,
         totalPages: Math.ceil(totalItems / limit)
       }
     });
+
   } catch (err) {
     console.error("getAdminOrders:", err);
     res.status(500).json({ message: "Server error" });
