@@ -63,7 +63,7 @@ export const Sidebar = () => {
             <div>
               <div className="w-25 h-17 overflow-hidden">
                 <img
-                  src="https://res.cloudinary.com/dgwx34lqc/image/upload/v1770875314/LOGO_jfhzkk.png"
+                  src={import.meta.env.VITE_LOGO_IMAGE_URL}
                   className="w-full h-full object-cover object-top scale-150"
                   alt="Logo"
                 />
