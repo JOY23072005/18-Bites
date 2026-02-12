@@ -35,7 +35,7 @@ export const Orders = () => {
           status: statusFilter,
         },
       });
-      setOrders(data.data.order);
+      setOrders(data.data.orders);
       setPagination({
         page: data.data.page,
         limit: data.data.limit,

@@ -11,6 +11,7 @@ export const DataTable = ({
   renderRow,
 }) => {
   useEffect(()=>{
+    if(data?.length==0) return;
     console.log(data);
   },[])
   return (
