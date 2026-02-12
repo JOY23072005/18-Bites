@@ -3,7 +3,7 @@ import { Plus, Edit2, Trash2, Search } from "lucide-react";
 import DataTable from "../components/DataTable.jsx";
 import Button from "../components/Button.jsx";
 import Modal from "../components/Modal.jsx";
-import Input, { FileInput } from "../components/Input.jsx";
+import Input from "../components/Input.jsx";
 import api from "../lib/api.js";
 import toast from "react-hot-toast";
 
@@ -25,13 +25,13 @@ export const Categories = () => {
     name: "",
     slug: "",
     description: "",
-    showHome: false,     // ✅ NEW
+    showHome: false,
     image: null,
-    preview: null,      // ✅ NEW
+    preview: null,
     existingImage: null,
   });
 
-  // ================= FETCH =================
+  /* ================= FETCH ================= */
 
   const fetchCategories = async (page = 1) => {
     setLoading(true);
@@ -58,67 +58,65 @@ export const Categories = () => {
     fetchCategories(1);
   }, [searchTerm]);
 
-  // ================= EDIT =================
+  /* ================= EDIT ================= */
 
   const handleEdit = (category) => {
     setEditingCategory(category);
-
     setFormData({
       name: category.name,
       slug: category.slug || "",
       description: category.description || "",
-      showHome: category.showHome || false,  // ✅ NEW
+      showHome: category.showHome || false,
       image: null,
       preview: null,
       existingImage: category.image || null,
     });
-
     setIsModalOpen(true);
   };
 
-  // ================= DELETE =================
+  /* ================= DELETE ================= */
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure?")) return;
+    if (!window.confirm("Are you sure you want to deactivate this category?"))
+      return;
 
     try {
       await api.delete(`/api/categories/${id}`);
-      toast.success("Category deactivated");
+      toast.success("Category deleted successfully");
       fetchCategories(pagination.page);
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete category");
     }
   };
 
-  // ================= SAVE =================
+  /* ================= SAVE ================= */
 
   const handleSave = async () => {
     try {
-      let response;
-
       const payload = {
         name: formData.name,
         slug: formData.slug,
         description: formData.description,
-        showHome: formData.showHome,  // ✅ SEND TO BACKEND
+        showHome: formData.showHome,
       };
+
+      let response;
 
       if (editingCategory) {
         response = await api.put(
           `/api/categories/${editingCategory._id}`,
           payload
         );
-        toast.success("Category updated");
+        toast.success("Category updated successfully");
       } else {
         response = await api.post("/api/categories", payload);
-        toast.success("Category created");
+        toast.success("Category created successfully");
       }
 
       const categoryId = editingCategory
         ? editingCategory._id
         : response.data.category._id;
 
-      // Upload image
       if (formData.image) {
         const imgForm = new FormData();
         imgForm.append("image", formData.image);
@@ -132,8 +130,7 @@ export const Categories = () => {
 
       resetForm();
       fetchCategories(1);
-
-    } catch (error) {
+    } catch {
       toast.error("Operation failed");
     }
   };
@@ -145,19 +142,16 @@ export const Categories = () => {
     setFormData((prev) => ({
       ...prev,
       image: file,
-      preview: URL.createObjectURL(file),  // ✅ PREVIEW
+      preview: URL.createObjectURL(file),
     }));
   };
-
-  // ================= IMAGE DELETE =================
 
   const handleDeleteImage = async () => {
     if (!editingCategory) return;
     if (!window.confirm("Remove this image?")) return;
+
     try {
-      await api.delete(
-        `/api/categories/${editingCategory._id}/image`
-      );
+      await api.delete(`/api/categories/${editingCategory._id}/image`);
 
       setFormData((prev) => ({
         ...prev,
@@ -165,11 +159,10 @@ export const Categories = () => {
       }));
 
       toast.success("Image deleted successfully");
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete image");
     }
   };
-
 
   const resetForm = () => {
     setIsModalOpen(false);
@@ -178,12 +171,14 @@ export const Categories = () => {
       name: "",
       slug: "",
       description: "",
+      showHome: false,
       image: null,
+      preview: null,
       existingImage: null,
     });
   };
 
-  // ================= TABLE =================
+  /* ================= TABLE ================= */
 
   const columns = [
     { key: "name", label: "Category Name" },
@@ -195,27 +190,33 @@ export const Categories = () => {
 
   return (
     <div className="p-6 space-y-6">
-      {/* HEADER */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Categories Management</h1>
-        <Button onClick={() => setIsModalOpen(true)}>
-          <Plus size={18} /> Add Category
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
+        <h1 className="text-3xl font-bold text-gray-900">
+          Categories Management
+        </h1>
+
+        <Button
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center gap-2"
+        >
+          <Plus size={20} /> Add Category
         </Button>
       </div>
 
-      {/* SEARCH */}
+      {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+        <Search className="absolute left-3 top-3 text-gray-400" size={20} />
         <input
           type="text"
           placeholder="Search categories..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border rounded-lg"
+          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
         />
       </div>
 
-      {/* TABLE */}
+      {/* Table */}
       <DataTable
         columns={columns}
         data={categories}
@@ -224,42 +225,59 @@ export const Categories = () => {
         onPageChange={(page) => fetchCategories(page)}
         renderRow={(category) => (
           <tr key={category._id} className="hover:bg-gray-50">
-            <td className="px-6 py-4">{category.name}</td>
-            <td className="px-6 py-4">{category.slug}</td>
-            <td className="px-6 py-4 truncate max-w-xs">
+            <td className="px-6 py-4 text-sm font-medium text-gray-900">
+              {category.name}
+            </td>
+
+            <td className="px-6 py-4 text-sm text-gray-600">
+              {category.slug}
+            </td>
+
+            <td className="px-6 py-4 text-sm text-gray-600 truncate max-w-xs">
               {category.description}
             </td>
-            <td className="px-6 py-4">
-              {category.isActive ? "Active" : "Inactive"}
+
+            <td className="px-6 py-4 text-sm">
+              <span
+                className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                  category.isActive
+                    ? "text-green-600 bg-green-100"
+                    : "text-red-600 bg-red-100"
+                }`}
+              >
+                {category.isActive ? "Active" : "Inactive"}
+              </span>
             </td>
-            <td className="px-6 py-4 flex gap-2">
+
+            <td className="px-6 py-4 text-sm flex gap-2">
               <button
                 onClick={() => handleEdit(category)}
-                className="text-blue-600"
+                className="text-primary-600 hover:text-primary-700 p-1"
               >
-                <Edit2 size={16} />
+                <Edit2 size={18} />
               </button>
+
               <button
                 onClick={() => handleDelete(category._id)}
-                className="text-red-600"
+                className="text-red-600 hover:text-red-700 p-1"
               >
-                <Trash2 size={16} />
+                <Trash2 size={18} />
               </button>
             </td>
           </tr>
         )}
       />
 
-      {/* MODAL */}
+      {/* Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={resetForm}
-        title={editingCategory ? "Edit Category" : "Add Category"}
+        title={editingCategory ? "Edit Category" : "Add New Category"}
+        size="lg"
       >
-        <div className="space-y-4">
-
+        <div className="space-y-4 max-h-96 overflow-y-auto">
           <Input
-            label="Name"
+            label="Category Name"
             required
             value={formData.name}
             onChange={(e) =>
@@ -283,7 +301,7 @@ export const Categories = () => {
             }
           />
 
-          {/* ✅ showHome Toggle */}
+          {/* showHome toggle */}
           <div className="flex items-center gap-3">
             <input
               type="checkbox"
@@ -298,21 +316,21 @@ export const Categories = () => {
             </label>
           </div>
 
-          {/* IMAGE INPUT */}
+          {/* Image Upload */}
           <input
             type="file"
             accept="image/*"
             onChange={handleImageChange}
-            className="w-full border p-2 rounded"
+            className="w-full border border-gray-300 rounded-lg p-2"
           />
 
-          {/* ✅ PREVIEW (New Image) */}
+          {/* Preview */}
           {formData.preview && (
-            <div className="relative w-32 h-32">
+            <div className="relative w-32 h-32 group">
               <img
                 src={formData.preview}
                 alt="preview"
-                className="w-full h-full object-cover rounded border"
+                className="w-full h-full object-cover rounded-lg border"
               />
               <button
                 onClick={() =>
@@ -329,16 +347,13 @@ export const Categories = () => {
             </div>
           )}
 
-          {/* ✅ EXISTING IMAGE */}
           {!formData.preview && formData.existingImage && (
             <div className="relative w-32 h-32 group">
               <img
                 src={formData.existingImage.url}
                 alt="category"
-                className="w-full h-full object-cover rounded border"
+                className="w-full h-full object-cover rounded-lg border"
               />
-
-              {/* Delete Button */}
               <button
                 onClick={handleDeleteImage}
                 className="absolute top-1 right-1 bg-red-500 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition"
@@ -348,12 +363,15 @@ export const Categories = () => {
             </div>
           )}
 
-
           <div className="flex gap-3 pt-4">
             <Button onClick={handleSave} className="flex-1">
               {editingCategory ? "Update" : "Create"}
             </Button>
-            <Button variant="secondary" onClick={resetForm} className="flex-1">
+            <Button
+              variant="secondary"
+              onClick={resetForm}
+              className="flex-1"
+            >
               Cancel
             </Button>
           </div>

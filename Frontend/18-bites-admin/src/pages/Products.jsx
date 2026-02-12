@@ -228,6 +228,7 @@ export const Products = () => {
   { key: "isFeatured", label: "Featured" },
   { key: "isActive", label: "Status" },
   { key: "actions", label: "Actions" },
+  { key: "hot-deal", label: "Set Hot Deal"}
   ];
 
   const handleSetHotDeal = async (id) => {
@@ -359,24 +360,27 @@ export const Products = () => {
                 {product.isActive?"Active":"Inactive"}
               </span>
             </td>
-            <td className="px-6 py-4 text-sm flex gap-2">
-              <button
-                onClick={() => handleEdit(product)}
-                className="text-primary-600 hover:text-primary-700 p-1"
-              >
-                <Edit2 size={18} />
-              </button>
-              <button
-                onClick={() => handleDelete(product._id)}
-                className="text-red-600 hover:text-red-700 p-1"
-              >
-                <Trash2 size={18} />
-              </button>
+            <td className="px-6 py-4 text-sm">
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  onClick={() => handleEdit(product)}
+                  className="text-primary-600 hover:text-primary-700 hover:cursor-pointer p-1"
+                >
+                  <Edit2 size={18} />
+                </button>
+
+                <button
+                  onClick={() => handleDelete(product._id)}
+                  className="text-red-600 hover:text-red-700 hover:cursor-pointer p-1"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
             </td>
-            <td>
+            <td className="px-6 py-4 text-sm">
               <button
                 onClick={() => handleSetHotDeal(product._id)}
-                className="text-orange-600 p-1"
+                className="border border-transparent bg-primary-100 hover:bg-primary-200 rounded focus:ring-4 focus:ring-neutral-tertiary font-medium leading-5 rounded-base text-sm px-4 py-2.5 focus:outline-none hover:cursor-pointer"
               >
                 🔥
               </button>
