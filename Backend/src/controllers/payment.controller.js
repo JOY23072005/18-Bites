@@ -48,19 +48,34 @@ export const createPaymentIntent = async (req, res) => {
 
     if (couponCode) {
       const coupon = await Coupon.findOne({
-        code: couponCode,
+        code: couponCode.toUpperCase(),
         isActive: true,
-        expiresAt: { $gt: new Date() }
+        validFrom: { $lte: new Date() },
+        validUntil: { $gte: new Date() }
       });
 
       if (!coupon) {
         return res.status(400).json({ message: "Invalid or expired coupon" });
       }
 
+      if (coupon.minOrderValue && subTotal < coupon.minOrderValue) {
+        return res.status(400).json({
+          message: `Minimum order value is ₹${coupon.minOrderValue}`
+        });
+      }
+
+      if (coupon.maxUses !== null && coupon.usedCount >= coupon.maxUses) {
+        return res.status(400).json({ message: "Coupon usage limit reached" });
+      }
+
       if (coupon.discountType === "flat") {
         discountAmount = coupon.discountValue;
       } else {
         discountAmount = (subTotal * coupon.discountValue) / 100;
+
+        if (coupon.maxDiscount !== null) {
+          discountAmount = Math.min(discountAmount, coupon.maxDiscount);
+        }
       }
 
       discountAmount = Math.min(discountAmount, subTotal);
